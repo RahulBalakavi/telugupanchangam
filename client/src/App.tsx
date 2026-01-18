@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
+import { IOSInstallPrompt } from "@/components/ios-install-prompt";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Landing from "@/pages/landing";
@@ -43,6 +44,7 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <AuthenticatedRouter />
+          <IOSInstallPrompt />
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>

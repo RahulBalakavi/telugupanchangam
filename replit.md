@@ -12,6 +12,7 @@ This application provides:
 - **Notifications**: Browser notification settings for Ekadashi, Chaturthi, Purnima, and Amavasya
 - **Timezone Support**: Users can select their timezone to see localized times for tithi, nakshatra, sunrise/sunset
 - **Google Authentication**: Secure login via Replit Auth with Google sign-in
+- **iPhone Installable (PWA)**: Can be installed on iPhone home screen for app-like experience
 
 ## Architecture
 
