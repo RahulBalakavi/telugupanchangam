@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export * from "./models/auth";
+
 export const tithiNames = [
   "Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami",
   "Shashthi", "Saptami", "Ashtami", "Navami", "Dashami",
@@ -50,12 +52,17 @@ export interface PanchangData {
   tithi: string;
   tithiTelugu: string;
   tithiNumber: number;
+  tithiStartTime: string;
+  tithiEndTime: string;
   paksha: string;
   pakshaTelugu: string;
   nakshatra: string;
   nakshatraTelugu: string;
+  nakshatraStartTime: string;
+  nakshatraEndTime: string;
   sunrise: string;
   sunset: string;
+  timezone: string;
   moonPhase: number;
   isSpecialDay: boolean;
   specialDayInfo?: string;
@@ -120,13 +127,3 @@ export interface CalendarDay {
   templeEvents: TempleEvent[];
 }
 
-export interface User {
-  id: string;
-  username: string;
-  password: string;
-}
-
-export interface InsertUser {
-  username: string;
-  password: string;
-}

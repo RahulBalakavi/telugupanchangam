@@ -12,16 +12,68 @@ import {
 
 const SYNODIC_MONTH = 29.530588853;
 const NEW_MOON_REFERENCE = new Date("2000-01-06T18:14:00Z").getTime();
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+const TITHI_DURATION_MS = (SYNODIC_MONTH / 30) * MS_PER_DAY;
+const NAKSHATRA_DURATION_DEG = 360 / 27;
 
 export function getMoonPhase(date: Date): number {
   const diff = date.getTime() - NEW_MOON_REFERENCE;
-  const days = diff / (1000 * 60 * 60 * 24);
-  return (days % SYNODIC_MONTH) / SYNODIC_MONTH;
+  const days = diff / MS_PER_DAY;
+  let phase = (days % SYNODIC_MONTH) / SYNODIC_MONTH;
+  if (phase < 0) phase += 1;
+  return phase;
 }
 
 export function getTithiNumber(date: Date): number {
   const phase = getMoonPhase(date);
   return Math.floor(phase * 30) % 30;
+}
+
+export function getTithiTimings(date: Date): { startTime: string; endTime: string } {
+  const phase = getMoonPhase(date);
+  const currentTithi = Math.floor(phase * 30);
+  const fractionIntoTithi = (phase * 30) - currentTithi;
+  
+  const timeIntoTithi = fractionIntoTithi * TITHI_DURATION_MS;
+  const timeUntilEnd = TITHI_DURATION_MS - timeIntoTithi;
+  
+  const startDate = new Date(date.getTime() - timeIntoTithi);
+  const endDate = new Date(date.getTime() + timeUntilEnd);
+  
+  return {
+    startTime: formatTime(startDate),
+    endTime: formatTime(endDate),
+  };
+}
+
+export function getNakshatraTimings(date: Date): { startTime: string; endTime: string } {
+  const jd = getJulianDay(date);
+  const moonLong = getMoonLongitude(jd);
+  const nakshatraIndex = Math.floor(moonLong / NAKSHATRA_DURATION_DEG);
+  const fractionIntoNakshatra = (moonLong / NAKSHATRA_DURATION_DEG) - nakshatraIndex;
+  
+  const moonDailyMotion = 13.176358;
+  const nakshatraDurationHours = (NAKSHATRA_DURATION_DEG / moonDailyMotion) * 24;
+  const nakshatraDurationMs = nakshatraDurationHours * 60 * 60 * 1000;
+  
+  const timeIntoNakshatra = fractionIntoNakshatra * nakshatraDurationMs;
+  const timeUntilEnd = nakshatraDurationMs - timeIntoNakshatra;
+  
+  const startDate = new Date(date.getTime() - timeIntoNakshatra);
+  const endDate = new Date(date.getTime() + timeUntilEnd);
+  
+  return {
+    startTime: formatTime(startDate),
+    endTime: formatTime(endDate),
+  };
+}
+
+function formatTime(date: Date): string {
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
 export function getTithi(date: Date): { name: string; nameTelugu: string; number: number; paksha: string; pakshaTelugu: string } {
@@ -52,21 +104,22 @@ export function getTithi(date: Date): { name: string; nameTelugu: string; number
   };
 }
 
-export function getNakshatra(date: Date): { name: string; nameTelugu: string } {
+export function getNakshatra(date: Date): { name: string; nameTelugu: string; index: number } {
   const jd = getJulianDay(date);
   const moonLong = getMoonLongitude(jd);
-  const nakshatraIndex = Math.floor(moonLong / (360 / 27)) % 27;
+  const nakshatraIndex = Math.floor(moonLong / NAKSHATRA_DURATION_DEG) % 27;
   
   return {
     name: nakshatraNames[nakshatraIndex],
     nameTelugu: nakshatraNamesTelugu[nakshatraIndex],
+    index: nakshatraIndex,
   };
 }
 
 function getJulianDay(date: Date): number {
   const year = date.getUTCFullYear();
   const month = date.getUTCMonth() + 1;
-  const day = date.getUTCDate() + date.getUTCHours() / 24;
+  const day = date.getUTCDate() + date.getUTCHours() / 24 + date.getUTCMinutes() / 1440;
   
   let y = year;
   let m = month;
@@ -116,7 +169,7 @@ export function getTeluguYear(date: Date): number {
   return year + 57;
 }
 
-export function getSunrise(date: Date, lat: number = 17.385, lon: number = 78.4867): string {
+export function getSunrise(date: Date, lat: number = 17.385, lon: number = 78.4867, timezoneOffset: number = 5.5): string {
   const dayOfYear = getDayOfYear(date);
   const B = (2 * Math.PI / 365) * (dayOfYear - 81);
   const EoT = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
@@ -128,7 +181,7 @@ export function getSunrise(date: Date, lat: number = 17.385, lon: number = 78.48
   const cosHA = -Math.tan(latRad) * Math.tan(declRad);
   const HA = Math.acos(Math.max(-1, Math.min(1, cosHA))) * 180 / Math.PI;
   
-  const solarNoon = 12 - lon / 15 - EoT / 60 + 5.5;
+  const solarNoon = 12 - lon / 15 - EoT / 60 + timezoneOffset;
   const sunrise = solarNoon - HA / 15;
   
   const hours = Math.floor(sunrise);
@@ -137,7 +190,7 @@ export function getSunrise(date: Date, lat: number = 17.385, lon: number = 78.48
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
 
-export function getSunset(date: Date, lat: number = 17.385, lon: number = 78.4867): string {
+export function getSunset(date: Date, lat: number = 17.385, lon: number = 78.4867, timezoneOffset: number = 5.5): string {
   const dayOfYear = getDayOfYear(date);
   const B = (2 * Math.PI / 365) * (dayOfYear - 81);
   const EoT = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
@@ -149,7 +202,7 @@ export function getSunset(date: Date, lat: number = 17.385, lon: number = 78.486
   const cosHA = -Math.tan(latRad) * Math.tan(declRad);
   const HA = Math.acos(Math.max(-1, Math.min(1, cosHA))) * 180 / Math.PI;
   
-  const solarNoon = 12 - lon / 15 - EoT / 60 + 5.5;
+  const solarNoon = 12 - lon / 15 - EoT / 60 + timezoneOffset;
   const sunset = solarNoon + HA / 15;
   
   const hours = Math.floor(sunset);
@@ -161,7 +214,7 @@ export function getSunset(date: Date, lat: number = 17.385, lon: number = 78.486
 function getDayOfYear(date: Date): number {
   const start = new Date(date.getFullYear(), 0, 0);
   const diff = date.getTime() - start.getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24));
+  return Math.floor(diff / MS_PER_DAY);
 }
 
 export function getSpecialDayInfo(tithi: { name: string; number: number; paksha: string }): { isSpecial: boolean; info?: string; infoTelugu?: string } {
@@ -200,7 +253,7 @@ export function getSpecialDayInfo(tithi: { name: string; number: number; paksha:
     };
   }
   
-  if (tithiName === "pradosham" || tithi.number === 12 || tithi.number === 27) {
+  if (tithiName === "trayodashi" || tithi.number === 12 || tithi.number === 27) {
     return {
       isSpecial: true,
       info: "Pradosham - Sacred to Lord Shiva",
@@ -211,13 +264,15 @@ export function getSpecialDayInfo(tithi: { name: string; number: number; paksha:
   return { isSpecial: false };
 }
 
-export function getPanchangForDate(date: Date): PanchangData {
+export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"): PanchangData {
   const tithi = getTithi(date);
   const nakshatra = getNakshatra(date);
   const teluguMonth = getTeluguMonth(date);
   const teluguYear = getTeluguYear(date);
   const moonPhase = getMoonPhase(date);
   const specialDay = getSpecialDayInfo(tithi);
+  const tithiTimings = getTithiTimings(date);
+  const nakshatraTimings = getNakshatraTimings(date);
   
   const teluguDate = Math.floor(tithi.number / 2) + 1;
   
@@ -230,12 +285,17 @@ export function getPanchangForDate(date: Date): PanchangData {
     tithi: tithi.name,
     tithiTelugu: tithi.nameTelugu,
     tithiNumber: tithi.number,
+    tithiStartTime: tithiTimings.startTime,
+    tithiEndTime: tithiTimings.endTime,
     paksha: tithi.paksha,
     pakshaTelugu: tithi.pakshaTelugu,
     nakshatra: nakshatra.name,
     nakshatraTelugu: nakshatra.nameTelugu,
+    nakshatraStartTime: nakshatraTimings.startTime,
+    nakshatraEndTime: nakshatraTimings.endTime,
     sunrise: getSunrise(date),
     sunset: getSunset(date),
+    timezone,
     moonPhase,
     isSpecialDay: specialDay.isSpecial,
     specialDayInfo: specialDay.info,
@@ -243,7 +303,7 @@ export function getPanchangForDate(date: Date): PanchangData {
   };
 }
 
-export function getCalendarDays(year: number, month: number) {
+export function getCalendarDays(year: number, month: number, timezone: string = "Asia/Kolkata") {
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
   
@@ -260,7 +320,7 @@ export function getCalendarDays(year: number, month: number) {
   today.setHours(0, 0, 0, 0);
   
   while (current <= endDate) {
-    const panchang = getPanchangForDate(current);
+    const panchang = getPanchangForDate(current, timezone);
     const isCurrentMonth = current.getMonth() === month;
     const isToday = current.toDateString() === today.toDateString();
     

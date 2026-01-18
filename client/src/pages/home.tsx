@@ -8,11 +8,15 @@ import { NotificationSettings } from "@/components/notification-settings";
 import { DayDetailModal } from "@/components/day-detail-modal";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Bell, Sparkles } from "lucide-react";
+import { Calendar, Bell, Sparkles, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useAuth } from "@/hooks/use-auth";
 import type { CalendarDay, PanchangData, Festival, TempleEvent, NotificationPreference } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Home() {
+  const { user } = useAuth();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -85,7 +89,27 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <ThemeToggle />
+          <div className="flex items-center gap-3">
+            {user && (
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || "User"} />
+                  <AvatarFallback>
+                    {user.firstName?.[0] || user.email?.[0] || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <span className="text-sm hidden md:inline" data-testid="text-user-name">
+                  {user.firstName || user.email}
+                </span>
+              </div>
+            )}
+            <ThemeToggle />
+            <Button variant="ghost" size="icon" asChild data-testid="button-logout">
+              <a href="/api/logout" title="Logout">
+                <LogOut className="h-4 w-4" />
+              </a>
+            </Button>
+          </div>
         </div>
       </header>
 

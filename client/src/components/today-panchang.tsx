@@ -83,6 +83,9 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
                 <p className="text-sm text-muted-foreground">
                   {panchang.paksha} {panchang.tithi}
                 </p>
+                <p className="text-xs text-muted-foreground mt-1" data-testid="text-tithi-timing">
+                  {panchang.tithiStartTime} - {panchang.tithiEndTime}
+                </p>
               </div>
             </div>
             
@@ -94,6 +97,9 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
                 <p className="text-sm text-muted-foreground">Nakshatra</p>
                 <p className="font-medium" data-testid="text-nakshatra">{panchang.nakshatraTelugu}</p>
                 <p className="text-sm text-muted-foreground">{panchang.nakshatra}</p>
+                <p className="text-xs text-muted-foreground mt-1" data-testid="text-nakshatra-timing">
+                  {panchang.nakshatraStartTime} - {panchang.nakshatraEndTime}
+                </p>
               </div>
             </div>
           </div>
@@ -118,6 +124,12 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
                 <p className="font-medium" data-testid="text-sunset">{panchang.sunset}</p>
               </div>
             </div>
+            
+            {panchang.timezone && (
+              <p className="text-xs text-muted-foreground pt-2" data-testid="text-timezone">
+                Timezone: {panchang.timezone}
+              </p>
+            )}
           </div>
           
           <div className="space-y-4">

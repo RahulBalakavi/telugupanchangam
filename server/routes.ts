@@ -13,20 +13,23 @@ import {
   setNotificationPreferences,
 } from "./data";
 import { notificationPreferenceSchema } from "@shared/schema";
+import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  app.get("/api/panchang/today", (req, res) => {
+  await setupAuth(app);
+  registerAuthRoutes(app);
+  app.get("/api/panchang/today", isAuthenticated, (req, res) => {
     const today = new Date();
     const panchang = getPanchangForDate(today);
     res.json(panchang);
   });
 
-  app.get("/api/panchang/:date", (req, res) => {
+  app.get("/api/panchang/:date", isAuthenticated, (req, res) => {
     try {
-      const date = new Date(req.params.date);
+      const date = new Date(req.params.date as string);
       if (isNaN(date.getTime())) {
         return res.status(400).json({ error: "Invalid date format" });
       }
@@ -37,10 +40,10 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/calendar/:year/:month", (req, res) => {
+  app.get("/api/calendar/:year/:month", isAuthenticated, (req, res) => {
     try {
-      const year = parseInt(req.params.year);
-      const month = parseInt(req.params.month);
+      const year = parseInt(req.params.year as string);
+      const month = parseInt(req.params.month as string);
       
       if (isNaN(year) || isNaN(month) || month < 0 || month > 11) {
         return res.status(400).json({ error: "Invalid year or month" });
@@ -62,24 +65,24 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/festivals/upcoming", (req, res) => {
+  app.get("/api/festivals/upcoming", isAuthenticated, (req, res) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const festivals = getUpcomingFestivals(limit);
     res.json(festivals);
   });
 
-  app.get("/api/temple-events/upcoming", (req, res) => {
+  app.get("/api/temple-events/upcoming", isAuthenticated, (req, res) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const events = getUpcomingTempleEvents(limit);
     res.json(events);
   });
 
-  app.get("/api/notifications/preferences", (req, res) => {
+  app.get("/api/notifications/preferences", isAuthenticated, (req, res) => {
     const prefs = getNotificationPreferences();
     res.json(prefs);
   });
 
-  app.post("/api/notifications/preferences", (req, res) => {
+  app.post("/api/notifications/preferences", isAuthenticated, (req, res) => {
     try {
       const parsed = notificationPreferenceSchema.safeParse(req.body);
       if (!parsed.success) {
