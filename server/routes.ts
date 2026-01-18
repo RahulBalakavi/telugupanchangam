@@ -23,7 +23,8 @@ export async function registerRoutes(
   registerAuthRoutes(app);
   app.get("/api/panchang/today", isAuthenticated, (req, res) => {
     const today = new Date();
-    const panchang = getPanchangForDate(today);
+    const timezone = (req.query.timezone as string) || "Asia/Kolkata";
+    const panchang = getPanchangForDate(today, timezone);
     res.json(panchang);
   });
 
@@ -33,7 +34,8 @@ export async function registerRoutes(
       if (isNaN(date.getTime())) {
         return res.status(400).json({ error: "Invalid date format" });
       }
-      const panchang = getPanchangForDate(date);
+      const timezone = (req.query.timezone as string) || "Asia/Kolkata";
+      const panchang = getPanchangForDate(date, timezone);
       res.json(panchang);
     } catch (error) {
       res.status(400).json({ error: "Invalid date" });
@@ -44,12 +46,13 @@ export async function registerRoutes(
     try {
       const year = parseInt(req.params.year as string);
       const month = parseInt(req.params.month as string);
+      const timezone = (req.query.timezone as string) || "Asia/Kolkata";
       
       if (isNaN(year) || isNaN(month) || month < 0 || month > 11) {
         return res.status(400).json({ error: "Invalid year or month" });
       }
       
-      const days = getCalendarDays(year, month);
+      const days = getCalendarDays(year, month, timezone);
       
       days.forEach((day) => {
         day.festivals = getFestivalsForDate(day.date);

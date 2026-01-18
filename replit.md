@@ -10,11 +10,14 @@ This application provides:
 - **Festivals**: Curated list of major Hindu festivals with Telugu and English descriptions
 - **Temple Events**: Important temple activities from famous temples like Tirumala, Srisailam, Bhadrachalam, etc.
 - **Notifications**: Browser notification settings for Ekadashi, Chaturthi, Purnima, and Amavasya
+- **Timezone Support**: Users can select their timezone to see localized times for tithi, nakshatra, sunrise/sunset
+- **Google Authentication**: Secure login via Replit Auth with Google sign-in
 
 ## Architecture
 
 ### Frontend (React + Vite)
 - `client/src/pages/home.tsx` - Main calendar page with tabs
+- `client/src/pages/landing.tsx` - Landing page for logged-out users
 - `client/src/components/today-panchang.tsx` - Today's panchang display
 - `client/src/components/calendar-grid.tsx` - Monthly calendar with Telugu dates
 - `client/src/components/festivals-list.tsx` - Upcoming festivals list
@@ -22,6 +25,8 @@ This application provides:
 - `client/src/components/notification-settings.tsx` - Notification preferences
 - `client/src/components/day-detail-modal.tsx` - Day detail popup
 - `client/src/components/moon-phase.tsx` - SVG moon phase visualization
+- `client/src/components/timezone-selector.tsx` - Timezone selection dropdown
+- `client/src/hooks/use-auth.ts` - Authentication state hook
 
 ### Backend (Express)
 - `server/panchang.ts` - Panchang calculation algorithms (tithi, nakshatra, moon phase)
@@ -33,13 +38,18 @@ This application provides:
 
 ## API Endpoints
 
-- `GET /api/panchang/today` - Today's panchang data
-- `GET /api/panchang/:date` - Panchang for specific date
-- `GET /api/calendar/:year/:month` - Calendar days with festivals and events
+All endpoints except `/api/login`, `/api/logout`, `/api/auth/user` require authentication.
+
+- `GET /api/panchang/today?timezone=Asia/Kolkata` - Today's panchang data (timezone optional)
+- `GET /api/panchang/:date?timezone=Asia/Kolkata` - Panchang for specific date
+- `GET /api/calendar/:year/:month?timezone=Asia/Kolkata` - Calendar days with festivals and events
 - `GET /api/festivals/upcoming` - Upcoming festivals
 - `GET /api/temple-events/upcoming` - Upcoming temple events
 - `GET /api/notifications/preferences` - Get notification preferences
 - `POST /api/notifications/preferences` - Save notification preferences
+- `GET /api/auth/user` - Get current logged-in user
+- `GET /api/login` - Initiate Google OAuth login
+- `GET /api/logout` - Logout and clear session
 
 ## Design System
 

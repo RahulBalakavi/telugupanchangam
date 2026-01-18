@@ -29,7 +29,7 @@ export function getTithiNumber(date: Date): number {
   return Math.floor(phase * 30) % 30;
 }
 
-export function getTithiTimings(date: Date): { startTime: string; endTime: string } {
+export function getTithiTimings(date: Date, timezone: string = "Asia/Kolkata"): { startTime: string; endTime: string } {
   const phase = getMoonPhase(date);
   const currentTithi = Math.floor(phase * 30);
   const fractionIntoTithi = (phase * 30) - currentTithi;
@@ -41,12 +41,12 @@ export function getTithiTimings(date: Date): { startTime: string; endTime: strin
   const endDate = new Date(date.getTime() + timeUntilEnd);
   
   return {
-    startTime: formatTime(startDate),
-    endTime: formatTime(endDate),
+    startTime: formatTime(startDate, timezone),
+    endTime: formatTime(endDate, timezone),
   };
 }
 
-export function getNakshatraTimings(date: Date): { startTime: string; endTime: string } {
+export function getNakshatraTimings(date: Date, timezone: string = "Asia/Kolkata"): { startTime: string; endTime: string } {
   const jd = getJulianDay(date);
   const moonLong = getMoonLongitude(jd);
   const nakshatraIndex = Math.floor(moonLong / NAKSHATRA_DURATION_DEG);
@@ -63,17 +63,26 @@ export function getNakshatraTimings(date: Date): { startTime: string; endTime: s
   const endDate = new Date(date.getTime() + timeUntilEnd);
   
   return {
-    startTime: formatTime(startDate),
-    endTime: formatTime(endDate),
+    startTime: formatTime(startDate, timezone),
+    endTime: formatTime(endDate, timezone),
   };
 }
 
-function formatTime(date: Date): string {
-  const hours = date.getHours();
-  const minutes = date.getMinutes();
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+function formatTime(date: Date, timezone: string = "Asia/Kolkata"): string {
+  try {
+    return date.toLocaleTimeString('en-US', {
+      timeZone: timezone,
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  } catch {
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const period = hours >= 12 ? 'PM' : 'AM';
+    const displayHours = hours % 12 || 12;
+    return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  }
 }
 
 export function getTithi(date: Date): { name: string; nameTelugu: string; number: number; paksha: string; pakshaTelugu: string } {
@@ -217,6 +226,28 @@ function getDayOfYear(date: Date): number {
   return Math.floor(diff / MS_PER_DAY);
 }
 
+function getTimezoneCoordinates(timezone: string): { lat: number; lon: number; offset: number } {
+  const timezoneData: Record<string, { lat: number; lon: number; offset: number }> = {
+    "Asia/Kolkata": { lat: 17.385, lon: 78.4867, offset: 5.5 },
+    "Asia/Dubai": { lat: 25.2048, lon: 55.2708, offset: 4 },
+    "Asia/Singapore": { lat: 1.3521, lon: 103.8198, offset: 8 },
+    "Asia/Tokyo": { lat: 35.6762, lon: 139.6503, offset: 9 },
+    "Asia/Hong_Kong": { lat: 22.3193, lon: 114.1694, offset: 8 },
+    "Europe/London": { lat: 51.5074, lon: -0.1278, offset: 0 },
+    "Europe/Paris": { lat: 48.8566, lon: 2.3522, offset: 1 },
+    "Europe/Berlin": { lat: 52.52, lon: 13.405, offset: 1 },
+    "America/New_York": { lat: 40.7128, lon: -74.006, offset: -5 },
+    "America/Chicago": { lat: 41.8781, lon: -87.6298, offset: -6 },
+    "America/Denver": { lat: 39.7392, lon: -104.9903, offset: -7 },
+    "America/Los_Angeles": { lat: 34.0522, lon: -118.2437, offset: -8 },
+    "America/Toronto": { lat: 43.6532, lon: -79.3832, offset: -5 },
+    "Australia/Sydney": { lat: -33.8688, lon: 151.2093, offset: 10 },
+    "Australia/Melbourne": { lat: -37.8136, lon: 144.9631, offset: 10 },
+    "Pacific/Auckland": { lat: -36.8485, lon: 174.7633, offset: 12 },
+  };
+  return timezoneData[timezone] || timezoneData["Asia/Kolkata"];
+}
+
 export function getSpecialDayInfo(tithi: { name: string; number: number; paksha: string }): { isSpecial: boolean; info?: string; infoTelugu?: string } {
   const tithiName = tithi.name.toLowerCase();
   const paksha = tithi.paksha.toLowerCase();
@@ -271,8 +302,9 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
   const teluguYear = getTeluguYear(date);
   const moonPhase = getMoonPhase(date);
   const specialDay = getSpecialDayInfo(tithi);
-  const tithiTimings = getTithiTimings(date);
-  const nakshatraTimings = getNakshatraTimings(date);
+  const tithiTimings = getTithiTimings(date, timezone);
+  const nakshatraTimings = getNakshatraTimings(date, timezone);
+  const { lat, lon, offset } = getTimezoneCoordinates(timezone);
   
   const teluguDate = Math.floor(tithi.number / 2) + 1;
   
@@ -293,8 +325,8 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
     nakshatraTelugu: nakshatra.nameTelugu,
     nakshatraStartTime: nakshatraTimings.startTime,
     nakshatraEndTime: nakshatraTimings.endTime,
-    sunrise: getSunrise(date),
-    sunset: getSunset(date),
+    sunrise: getSunrise(date, lat, lon, offset),
+    sunset: getSunset(date, lat, lon, offset),
     timezone,
     moonPhase,
     isSpecialDay: specialDay.isSpecial,

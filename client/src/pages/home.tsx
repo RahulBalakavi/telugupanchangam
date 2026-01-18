@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { TodayPanchang } from "@/components/today-panchang";
 import { CalendarGrid } from "@/components/calendar-grid";
@@ -7,6 +7,7 @@ import { TempleEvents } from "@/components/temple-events";
 import { NotificationSettings } from "@/components/notification-settings";
 import { DayDetailModal } from "@/components/day-detail-modal";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { TimezoneSelector, getStoredTimezone, setStoredTimezone } from "@/components/timezone-selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Bell, Sparkles, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,22 @@ export default function Home() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [timezone, setTimezone] = useState(getStoredTimezone());
+
+  const handleTimezoneChange = (newTimezone: string) => {
+    setTimezone(newTimezone);
+    setStoredTimezone(newTimezone);
+    queryClient.invalidateQueries({ queryKey: ["/api/panchang"] });
+    queryClient.invalidateQueries({ queryKey: ["/api/calendar"] });
+  };
 
   const { data: todayPanchang, isLoading: loadingToday } = useQuery<PanchangData>({
-    queryKey: ["/api/panchang/today"],
+    queryKey: ["/api/panchang/today", timezone],
+    queryFn: async () => {
+      const res = await fetch(`/api/panchang/today?timezone=${encodeURIComponent(timezone)}`);
+      if (!res.ok) throw new Error("Failed to fetch panchang");
+      return res.json();
+    },
   });
 
   const { data: monthData, isLoading: loadingMonth } = useQuery<{
@@ -30,7 +44,12 @@ export default function Home() {
     festivals: Festival[];
     templeEvents: TempleEvent[];
   }>({
-    queryKey: ["/api/calendar", currentMonth.getFullYear(), currentMonth.getMonth()],
+    queryKey: ["/api/calendar", currentMonth.getFullYear(), currentMonth.getMonth(), timezone],
+    queryFn: async () => {
+      const res = await fetch(`/api/calendar/${currentMonth.getFullYear()}/${currentMonth.getMonth()}?timezone=${encodeURIComponent(timezone)}`);
+      if (!res.ok) throw new Error("Failed to fetch calendar");
+      return res.json();
+    },
   });
 
   const { data: upcomingFestivals, isLoading: loadingFestivals } = useQuery<Festival[]>({
@@ -89,7 +108,10 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="hidden sm:block">
+              <TimezoneSelector value={timezone} onChange={handleTimezoneChange} />
+            </div>
             {user && (
               <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
