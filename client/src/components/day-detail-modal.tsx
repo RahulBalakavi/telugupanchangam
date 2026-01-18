@@ -71,6 +71,9 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                     <p className="font-medium text-sm" data-testid="text-modal-tithi">
                       {panchang.pakshaTelugu} {panchang.tithiTelugu}
                     </p>
+                    <p className="text-xs text-muted-foreground" data-testid="text-modal-tithi-timing">
+                      {panchang.tithiStartTime} - {panchang.tithiEndTime}
+                    </p>
                   </div>
                 </div>
 
@@ -82,6 +85,9 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                     <p className="text-xs text-muted-foreground">Nakshatra</p>
                     <p className="font-medium text-sm" data-testid="text-modal-nakshatra">
                       {panchang.nakshatraTelugu}
+                    </p>
+                    <p className="text-xs text-muted-foreground" data-testid="text-modal-nakshatra-timing">
+                      {panchang.nakshatraStartTime} - {panchang.nakshatraEndTime}
                     </p>
                   </div>
                 </div>
