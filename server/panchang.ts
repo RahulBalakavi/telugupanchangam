@@ -11,7 +11,7 @@ import {
 } from "@shared/schema";
 
 const SYNODIC_MONTH = 29.530588853;
-const NEW_MOON_REFERENCE = new Date("2000-01-06T18:14:00Z").getTime();
+const NEW_MOON_REFERENCE = new Date("2026-01-18T19:52:00Z").getTime();
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 const TITHI_DURATION_MS = (SYNODIC_MONTH / 30) * MS_PER_DAY;
 const NAKSHATRA_DURATION_DEG = 360 / 27;
@@ -296,15 +296,21 @@ export function getSpecialDayInfo(tithi: { name: string; number: number; paksha:
 }
 
 export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"): PanchangData {
-  const tithi = getTithi(date);
-  const nakshatra = getNakshatra(date);
+  const { lat, lon, offset } = getTimezoneCoordinates(timezone);
+  
+  const sunriseStr = getSunrise(date, lat, lon, offset);
+  const [sunriseHour, sunriseMin] = sunriseStr.split(':').map(Number);
+  const sunriseDate = new Date(date);
+  sunriseDate.setHours(sunriseHour, sunriseMin, 0, 0);
+  
+  const tithi = getTithi(sunriseDate);
+  const nakshatra = getNakshatra(sunriseDate);
   const teluguMonth = getTeluguMonth(date);
   const teluguYear = getTeluguYear(date);
-  const moonPhase = getMoonPhase(date);
+  const moonPhase = getMoonPhase(sunriseDate);
   const specialDay = getSpecialDayInfo(tithi);
-  const tithiTimings = getTithiTimings(date, timezone);
-  const nakshatraTimings = getNakshatraTimings(date, timezone);
-  const { lat, lon, offset } = getTimezoneCoordinates(timezone);
+  const tithiTimings = getTithiTimings(sunriseDate, timezone);
+  const nakshatraTimings = getNakshatraTimings(sunriseDate, timezone);
   
   const teluguDate = Math.floor(tithi.number / 2) + 1;
   

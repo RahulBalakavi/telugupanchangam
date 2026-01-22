@@ -65,8 +65,10 @@ Traditional Hindu/Telugu aesthetic with:
 
 ### Tithi Calculation
 - Based on synodic month (29.53 days)
-- Reference: New Moon on January 6, 2000
+- Reference: New Moon on January 18, 2026 at 19:52 UTC (astronomically verified)
+- Calculations use sunrise time for each timezone (traditional Hindu panchang convention)
 - 30 tithis per lunar month (15 Shukla + 15 Krishna)
+- Note: Uses average tithi duration; may have minor drift for dates far from anchor
 
 ### Special Days
 - Ekadashi (11th tithi) - Fasting day
