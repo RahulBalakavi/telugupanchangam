@@ -4,6 +4,7 @@ import { MoonPhase } from "./moon-phase";
 import { Sunrise, Sunset, Star, Calendar, Moon } from "lucide-react";
 import type { PanchangData } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/hooks/use-language";
 
 interface TodayPanchangProps {
   panchang?: PanchangData;
@@ -11,6 +12,8 @@ interface TodayPanchangProps {
 }
 
 export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
+  const { language, t } = useLanguage();
+  
   if (isLoading) {
     return (
       <Card className="overflow-hidden" data-testid="card-today-panchang-loading">
@@ -47,11 +50,14 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
           <div>
             <CardTitle className="text-2xl font-serif flex flex-wrap items-center gap-2">
               <span data-testid="text-telugu-date">
-                {panchang.teluguMonth} {panchang.teluguDate}, {panchang.teluguYear}
+                {language === "telugu" 
+                  ? `${panchang.teluguMonth} ${panchang.teluguDate}, ${panchang.teluguYear}`
+                  : `${panchang.teluguMonthEnglish} ${panchang.teluguDate}, ${panchang.teluguYear}`
+                }
               </span>
               {panchang.isSpecialDay && (
                 <Badge variant="default" className="ml-2" data-testid="badge-special-day">
-                  {panchang.specialDayInfoTelugu || panchang.specialDayInfo}
+                  {language === "telugu" ? panchang.specialDayInfoTelugu : panchang.specialDayInfo}
                 </Badge>
               )}
             </CardTitle>
@@ -76,12 +82,12 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
                 <Moon className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Tithi</p>
+                <p className="text-sm text-muted-foreground">{t("తిథి", "Tithi")}</p>
                 <p className="font-medium" data-testid="text-tithi">
-                  {panchang.pakshaTelugu} {panchang.tithiTelugu}
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {panchang.paksha} {panchang.tithi}
+                  {language === "telugu" 
+                    ? `${panchang.pakshaTelugu} ${panchang.tithiTelugu}`
+                    : `${panchang.paksha} ${panchang.tithi}`
+                  }
                 </p>
                 <p className="text-xs text-muted-foreground mt-1" data-testid="text-tithi-timing">
                   {panchang.tithiStartTime} - {panchang.tithiEndTime}
@@ -94,9 +100,10 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
                 <Star className="h-5 w-5 text-accent-foreground" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Nakshatra</p>
-                <p className="font-medium" data-testid="text-nakshatra">{panchang.nakshatraTelugu}</p>
-                <p className="text-sm text-muted-foreground">{panchang.nakshatra}</p>
+                <p className="text-sm text-muted-foreground">{t("నక్షత్రం", "Nakshatra")}</p>
+                <p className="font-medium" data-testid="text-nakshatra">
+                  {language === "telugu" ? panchang.nakshatraTelugu : panchang.nakshatra}
+                </p>
                 <p className="text-xs text-muted-foreground mt-1" data-testid="text-nakshatra-timing">
                   {panchang.nakshatraStartTime} - {panchang.nakshatraEndTime}
                 </p>
@@ -110,7 +117,7 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
                 <Sunrise className="h-5 w-5 text-amber-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Sunrise</p>
+                <p className="text-sm text-muted-foreground">{t("సూర్యోదయం", "Sunrise")}</p>
                 <p className="font-medium" data-testid="text-sunrise">{panchang.sunrise}</p>
               </div>
             </div>
@@ -120,14 +127,14 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
                 <Sunset className="h-5 w-5 text-orange-600" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Sunset</p>
+                <p className="text-sm text-muted-foreground">{t("సూర్యాస్తమయం", "Sunset")}</p>
                 <p className="font-medium" data-testid="text-sunset">{panchang.sunset}</p>
               </div>
             </div>
             
             {panchang.timezone && (
               <p className="text-xs text-muted-foreground pt-2" data-testid="text-timezone">
-                Timezone: {panchang.timezone}
+                {t("టైమ్‌జోన్", "Timezone")}: {panchang.timezone}
               </p>
             )}
           </div>
@@ -138,9 +145,10 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
                 <Calendar className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Telugu Month</p>
-                <p className="font-medium" data-testid="text-telugu-month">{panchang.teluguMonth}</p>
-                <p className="text-sm text-muted-foreground">{panchang.teluguMonthEnglish}</p>
+                <p className="text-sm text-muted-foreground">{t("తెలుగు మాసం", "Telugu Month")}</p>
+                <p className="font-medium" data-testid="text-telugu-month">
+                  {language === "telugu" ? panchang.teluguMonth : panchang.teluguMonthEnglish}
+                </p>
               </div>
             </div>
           </div>

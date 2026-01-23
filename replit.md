@@ -11,6 +11,7 @@ This application provides:
 - **Temple Events**: Important temple activities from famous temples like Tirumala, Srisailam, Bhadrachalam, etc.
 - **Notifications**: Browser notification settings for Ekadashi, Chaturthi, Purnima, and Amavasya
 - **Timezone Support**: Users can select their timezone to see localized times for tithi, nakshatra, sunrise/sunset
+- **Language Toggle**: Switch between Telugu and English for users who can't read Telugu script
 - **Google Authentication**: Secure login via Replit Auth with Google sign-in
 - **iPhone Installable (PWA)**: Can be installed on iPhone home screen for app-like experience
 

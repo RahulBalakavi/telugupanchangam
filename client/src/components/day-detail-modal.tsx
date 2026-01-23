@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { MoonPhase } from "./moon-phase";
 import { Calendar, Moon, Star, Sunrise, Sunset, MapPin } from "lucide-react";
 import type { CalendarDay } from "@shared/schema";
+import { useLanguage } from "@/hooks/use-language";
 
 interface DayDetailModalProps {
   day: CalendarDay | null;
@@ -18,6 +19,8 @@ interface DayDetailModalProps {
 }
 
 export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps) {
+  const { language, t } = useLanguage();
+  
   if (!day) return null;
 
   const { panchang, festivals, templeEvents } = day;
@@ -28,7 +31,7 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
         <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <span className="text-2xl font-serif">
-              {day.date.toLocaleDateString("en-US", {
+              {day.date.toLocaleDateString(language === "telugu" ? "te-IN" : "en-US", {
                 weekday: "long",
                 month: "long",
                 day: "numeric",
@@ -39,7 +42,10 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
           <DialogDescription>
             {panchang && (
               <span>
-                {panchang.teluguMonth} {panchang.teluguDate}, {panchang.teluguYear}
+                {language === "telugu" 
+                  ? `${panchang.teluguMonth} ${panchang.teluguDate}, ${panchang.teluguYear}`
+                  : `${panchang.teluguMonthEnglish} ${panchang.teluguDate}, ${panchang.teluguYear}`
+                }
               </span>
             )}
           </DialogDescription>
@@ -50,14 +56,14 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                  Panchang Details
+                  {t("పంచాంగ వివరాలు", "Panchang Details")}
                 </h3>
                 <MoonPhase phase={panchang.moonPhase} size={40} />
               </div>
 
               {panchang.isSpecialDay && (
                 <Badge variant="default" className="mb-2" data-testid="badge-special-day-modal">
-                  {panchang.specialDayInfoTelugu || panchang.specialDayInfo}
+                  {language === "telugu" ? panchang.specialDayInfoTelugu : panchang.specialDayInfo}
                 </Badge>
               )}
 
@@ -67,9 +73,12 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                     <Moon className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Tithi</p>
+                    <p className="text-xs text-muted-foreground">{t("తిథి", "Tithi")}</p>
                     <p className="font-medium text-sm" data-testid="text-modal-tithi">
-                      {panchang.pakshaTelugu} {panchang.tithiTelugu}
+                      {language === "telugu" 
+                        ? `${panchang.pakshaTelugu} ${panchang.tithiTelugu}`
+                        : `${panchang.paksha} ${panchang.tithi}`
+                      }
                     </p>
                     <p className="text-xs text-muted-foreground" data-testid="text-modal-tithi-timing">
                       {panchang.tithiStartTime} - {panchang.tithiEndTime}
@@ -82,9 +91,9 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                     <Star className="h-4 w-4 text-accent-foreground" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Nakshatra</p>
+                    <p className="text-xs text-muted-foreground">{t("నక్షత్రం", "Nakshatra")}</p>
                     <p className="font-medium text-sm" data-testid="text-modal-nakshatra">
-                      {panchang.nakshatraTelugu}
+                      {language === "telugu" ? panchang.nakshatraTelugu : panchang.nakshatra}
                     </p>
                     <p className="text-xs text-muted-foreground" data-testid="text-modal-nakshatra-timing">
                       {panchang.nakshatraStartTime} - {panchang.nakshatraEndTime}
@@ -97,7 +106,7 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                     <Sunrise className="h-4 w-4 text-amber-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Sunrise</p>
+                    <p className="text-xs text-muted-foreground">{t("సూర్యోదయం", "Sunrise")}</p>
                     <p className="font-medium text-sm" data-testid="text-modal-sunrise">
                       {panchang.sunrise}
                     </p>
@@ -109,7 +118,7 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                     <Sunset className="h-4 w-4 text-orange-600" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Sunset</p>
+                    <p className="text-xs text-muted-foreground">{t("సూర్యాస్తమయం", "Sunset")}</p>
                     <p className="font-medium text-sm" data-testid="text-modal-sunset">
                       {panchang.sunset}
                     </p>
@@ -121,9 +130,9 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                     <Calendar className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Telugu Month</p>
+                    <p className="text-xs text-muted-foreground">{t("తెలుగు మాసం", "Telugu Month")}</p>
                     <p className="font-medium text-sm" data-testid="text-modal-month">
-                      {panchang.teluguMonth} ({panchang.teluguMonthEnglish})
+                      {language === "telugu" ? panchang.teluguMonth : panchang.teluguMonthEnglish}
                     </p>
                   </div>
                 </div>
@@ -136,7 +145,7 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
               <Separator />
               <div className="space-y-3">
                 <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                  Festivals
+                  {t("పండుగలు", "Festivals")}
                 </h3>
                 {festivals.map((festival) => (
                   <div
@@ -146,14 +155,20 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <h4 className="font-medium">{festival.nameTelugu}</h4>
-                        <p className="text-sm text-muted-foreground">{festival.name}</p>
+                        <h4 className="font-medium">
+                          {language === "telugu" ? festival.nameTelugu : festival.name}
+                        </h4>
                       </div>
                       <Badge variant="outline" className="capitalize">
-                        {festival.type}
+                        {language === "telugu" 
+                          ? (festival.type === "major" ? "ప్రధాన" : festival.type === "minor" ? "చిన్న" : "ప్రాంతీయ")
+                          : festival.type
+                        }
                       </Badge>
                     </div>
-                    <p className="text-sm mt-2">{festival.descriptionTelugu || festival.description}</p>
+                    <p className="text-sm mt-2">
+                      {language === "telugu" ? (festival.descriptionTelugu || festival.description) : festival.description}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -165,7 +180,7 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
               <Separator />
               <div className="space-y-3">
                 <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
-                  Temple Events
+                  {t("దేవాలయ కార్యక్రమాలు", "Temple Events")}
                 </h3>
                 {templeEvents.map((event) => (
                   <div
@@ -173,17 +188,20 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                     className="p-3 rounded-md bg-muted/50"
                     data-testid={`modal-event-${event.id}`}
                   >
-                    <h4 className="font-medium">{event.eventNameTelugu}</h4>
-                    <p className="text-sm text-muted-foreground">{event.eventName}</p>
+                    <h4 className="font-medium">
+                      {language === "telugu" ? event.eventNameTelugu : event.eventName}
+                    </h4>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
                       <span className="text-base">🛕</span>
-                      <span>{event.templeNameTelugu}</span>
+                      <span>{language === "telugu" ? event.templeNameTelugu : event.templeName}</span>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                       <MapPin className="h-3 w-3" />
-                      <span>{event.locationTelugu}</span>
+                      <span>{language === "telugu" ? event.locationTelugu : event.location}</span>
                     </div>
-                    <p className="text-sm mt-2">{event.descriptionTelugu || event.description}</p>
+                    <p className="text-sm mt-2">
+                      {language === "telugu" ? (event.descriptionTelugu || event.description) : event.description}
+                    </p>
                   </div>
                 ))}
               </div>

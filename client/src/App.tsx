@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { useAuth } from "@/hooks/use-auth";
 import { IOSInstallPrompt } from "@/components/ios-install-prompt";
+import { LanguageContext, useLanguageProvider } from "@/hooks/use-language";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import Landing from "@/pages/landing";
@@ -37,15 +38,26 @@ function AuthenticatedRouter() {
   );
 }
 
+function LanguageProvider({ children }: { children: React.ReactNode }) {
+  const languageValue = useLanguageProvider();
+  return (
+    <LanguageContext.Provider value={languageValue}>
+      {children}
+    </LanguageContext.Provider>
+  );
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <TooltipProvider>
-          <Toaster />
-          <AuthenticatedRouter />
-          <IOSInstallPrompt />
-        </TooltipProvider>
+        <LanguageProvider>
+          <TooltipProvider>
+            <Toaster />
+            <AuthenticatedRouter />
+            <IOSInstallPrompt />
+          </TooltipProvider>
+        </LanguageProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );

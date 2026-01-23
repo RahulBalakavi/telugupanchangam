@@ -4,6 +4,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sparkles, PartyPopper, Flame } from "lucide-react";
 import type { Festival } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useLanguage } from "@/hooks/use-language";
 
 interface FestivalsListProps {
   festivals: Festival[];
@@ -11,7 +12,9 @@ interface FestivalsListProps {
   isLoading?: boolean;
 }
 
-export function FestivalsList({ festivals, title = "Upcoming Festivals", isLoading }: FestivalsListProps) {
+export function FestivalsList({ festivals, title, isLoading }: FestivalsListProps) {
+  const { language, t } = useLanguage();
+  const displayTitle = title || t("రాబోయే పండుగలు", "Upcoming Festivals");
   if (isLoading) {
     return (
       <Card data-testid="card-festivals-loading">
@@ -56,13 +59,13 @@ export function FestivalsList({ festivals, title = "Upcoming Festivals", isLoadi
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-serif flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-accent" />
-          {title}
+          {displayTitle}
         </CardTitle>
       </CardHeader>
       <CardContent>
         {festivals.length === 0 ? (
           <p className="text-muted-foreground text-center py-4" data-testid="text-no-festivals">
-            No upcoming festivals
+            {t("రాబోయే పండుగలు లేవు", "No upcoming festivals")}
           </p>
         ) : (
           <ScrollArea className="h-[300px] pr-4">
@@ -76,24 +79,28 @@ export function FestivalsList({ festivals, title = "Upcoming Festivals", isLoadi
                   <div className="flex items-start justify-between gap-2 flex-wrap">
                     <div className="flex-1 min-w-0">
                       <h4 className="font-medium" data-testid={`text-festival-name-${festival.id}`}>
-                        {festival.nameTelugu}
+                        {language === "telugu" ? festival.nameTelugu : festival.name}
                       </h4>
-                      <p className="text-sm text-muted-foreground">{festival.name}</p>
                     </div>
                     <Badge variant={getTypeBadgeVariant(festival.type)} className="shrink-0">
                       {getTypeIcon(festival.type)}
-                      <span className="ml-1 capitalize">{festival.type}</span>
+                      <span className="ml-1 capitalize">
+                        {language === "telugu" 
+                          ? (festival.type === "major" ? "ప్రధాన" : festival.type === "minor" ? "చిన్న" : "ప్రాంతీయ")
+                          : festival.type
+                        }
+                      </span>
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2" data-testid={`text-festival-date-${festival.id}`}>
-                    {new Date(festival.date).toLocaleDateString("en-US", {
+                    {new Date(festival.date).toLocaleDateString(language === "telugu" ? "te-IN" : "en-US", {
                       weekday: "short",
                       month: "short",
                       day: "numeric",
                     })}
                   </p>
                   <p className="text-sm mt-2 line-clamp-2" data-testid={`text-festival-desc-${festival.id}`}>
-                    {festival.descriptionTelugu || festival.description}
+                    {language === "telugu" ? (festival.descriptionTelugu || festival.description) : festival.description}
                   </p>
                 </div>
               ))}
