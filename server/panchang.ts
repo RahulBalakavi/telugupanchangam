@@ -9,36 +9,97 @@ import {
   pakshas,
   pakshasTelugu,
 } from "@shared/schema";
+import * as Astronomy from "astronomy-engine";
 
-const SYNODIC_MONTH = 29.530588853;
-const NEW_MOON_REFERENCE = new Date("2026-01-18T19:52:00Z").getTime();
-const MS_PER_DAY = 1000 * 60 * 60 * 24;
-const TITHI_DURATION_MS = (SYNODIC_MONTH / 30) * MS_PER_DAY;
-const NAKSHATRA_DURATION_DEG = 360 / 27;
+const NAKSHATRA_SPAN_DEG = 360 / 27; // Each nakshatra spans 13.333... degrees
 
+// Get accurate moon phase from astronomy-engine (0 = new moon, 0.5 = full moon, 1 = new moon)
 export function getMoonPhase(date: Date): number {
-  const diff = date.getTime() - NEW_MOON_REFERENCE;
-  const days = diff / MS_PER_DAY;
-  let phase = (days % SYNODIC_MONTH) / SYNODIC_MONTH;
-  if (phase < 0) phase += 1;
-  return phase;
+  const astroDate = Astronomy.MakeTime(date);
+  const illum = Astronomy.Illumination(Astronomy.Body.Moon, astroDate);
+  return illum.phase_angle / 360; // Convert phase angle to 0-1 range
 }
 
+// Get accurate moon ecliptic longitude for nakshatra calculation
+function getMoonLongitude(date: Date): number {
+  const astroDate = Astronomy.MakeTime(date);
+  const ecliptic = Astronomy.EclipticGeoMoon(astroDate);
+  let lon = ecliptic.lon;
+  if (lon < 0) lon += 360;
+  return lon;
+}
+
+// Calculate tithi number (0-29) from Sun-Moon angular distance
+// Tithi is based on the angular distance between Moon and Sun
+// Each tithi is 12 degrees of elongation (360/30 = 12)
 export function getTithiNumber(date: Date): number {
-  const phase = getMoonPhase(date);
-  return Math.floor(phase * 30) % 30;
+  const astroDate = Astronomy.MakeTime(date);
+  
+  // Get ecliptic longitudes of Sun and Moon
+  const sunEcliptic = Astronomy.SunPosition(astroDate);
+  const moonEcliptic = Astronomy.EclipticGeoMoon(astroDate);
+  
+  // Calculate the angular distance from Sun to Moon (Moon - Sun)
+  // This goes from 0° at new moon to 360° at next new moon
+  let elongation = moonEcliptic.lon - sunEcliptic.elon;
+  
+  // Normalize to 0-360 range
+  while (elongation < 0) elongation += 360;
+  while (elongation >= 360) elongation -= 360;
+  
+  // Each tithi is 12 degrees
+  const tithiNum = Math.floor(elongation / 12) % 30;
+  return tithiNum;
+}
+
+// Search for the exact time when a specific tithi ends
+function searchTithiEnd(date: Date, currentTithi: number): Date {
+  const targetElongation = ((currentTithi + 1) % 30) * 12;
+  
+  // Binary search for the tithi end time within the next 2 days
+  let low = date.getTime();
+  let high = date.getTime() + 2 * 24 * 60 * 60 * 1000;
+  
+  for (let i = 0; i < 20; i++) {
+    const mid = (low + high) / 2;
+    const midDate = new Date(mid);
+    const tithiAtMid = getTithiNumber(midDate);
+    
+    if (tithiAtMid === currentTithi) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+  
+  return new Date(high);
+}
+
+// Search for the exact time when a tithi starts
+function searchTithiStart(date: Date, currentTithi: number): Date {
+  // Search backwards to find when this tithi started
+  let low = date.getTime() - 2 * 24 * 60 * 60 * 1000;
+  let high = date.getTime();
+  
+  for (let i = 0; i < 20; i++) {
+    const mid = (low + high) / 2;
+    const midDate = new Date(mid);
+    const tithiAtMid = getTithiNumber(midDate);
+    
+    if (tithiAtMid === currentTithi) {
+      high = mid;
+    } else {
+      low = mid;
+    }
+  }
+  
+  return new Date(high);
 }
 
 export function getTithiTimings(date: Date, timezone: string = "Asia/Kolkata"): { startTime: string; endTime: string } {
-  const phase = getMoonPhase(date);
-  const currentTithi = Math.floor(phase * 30);
-  const fractionIntoTithi = (phase * 30) - currentTithi;
-  
-  const timeIntoTithi = fractionIntoTithi * TITHI_DURATION_MS;
-  const timeUntilEnd = TITHI_DURATION_MS - timeIntoTithi;
-  
-  const startDate = new Date(date.getTime() - timeIntoTithi);
-  const endDate = new Date(date.getTime() + timeUntilEnd);
+  const currentTithi = getTithiNumber(date);
+  const startDate = searchTithiStart(date, currentTithi);
+  const endDate = searchTithiEnd(date, currentTithi);
   
   return {
     startTime: formatTime(startDate, timezone),
@@ -46,21 +107,68 @@ export function getTithiTimings(date: Date, timezone: string = "Asia/Kolkata"): 
   };
 }
 
+// Get nakshatra index from moon longitude
+function getNakshatraIndex(date: Date): number {
+  const moonLon = getMoonLongitude(date);
+  // Nakshatras start from Ashwini at 0 degrees (aligned with sidereal zodiac)
+  // Apply Lahiri ayanamsa approximation for sidereal correction
+  const ayanamsa = getAyanamsa(date);
+  let siderealLon = moonLon - ayanamsa;
+  if (siderealLon < 0) siderealLon += 360;
+  return Math.floor(siderealLon / NAKSHATRA_SPAN_DEG) % 27;
+}
+
+// Lahiri ayanamsa approximation (sidereal correction)
+function getAyanamsa(date: Date): number {
+  const year = date.getFullYear() + (date.getMonth() + 1) / 12;
+  // Lahiri ayanamsa formula: approximately 23.85 degrees in 2000, increasing ~50.3 arcsec/year
+  const ayanamsa2000 = 23.85;
+  const ratePerYear = 50.3 / 3600; // arcseconds to degrees
+  return ayanamsa2000 + (year - 2000) * ratePerYear;
+}
+
+function searchNakshatraEnd(date: Date, currentNakshatra: number): Date {
+  let low = date.getTime();
+  let high = date.getTime() + 2 * 24 * 60 * 60 * 1000;
+  
+  for (let i = 0; i < 20; i++) {
+    const mid = (low + high) / 2;
+    const midDate = new Date(mid);
+    const nakshatraAtMid = getNakshatraIndex(midDate);
+    
+    if (nakshatraAtMid === currentNakshatra) {
+      low = mid;
+    } else {
+      high = mid;
+    }
+  }
+  
+  return new Date(high);
+}
+
+function searchNakshatraStart(date: Date, currentNakshatra: number): Date {
+  let low = date.getTime() - 2 * 24 * 60 * 60 * 1000;
+  let high = date.getTime();
+  
+  for (let i = 0; i < 20; i++) {
+    const mid = (low + high) / 2;
+    const midDate = new Date(mid);
+    const nakshatraAtMid = getNakshatraIndex(midDate);
+    
+    if (nakshatraAtMid === currentNakshatra) {
+      high = mid;
+    } else {
+      low = mid;
+    }
+  }
+  
+  return new Date(high);
+}
+
 export function getNakshatraTimings(date: Date, timezone: string = "Asia/Kolkata"): { startTime: string; endTime: string } {
-  const jd = getJulianDay(date);
-  const moonLong = getMoonLongitude(jd);
-  const nakshatraIndex = Math.floor(moonLong / NAKSHATRA_DURATION_DEG);
-  const fractionIntoNakshatra = (moonLong / NAKSHATRA_DURATION_DEG) - nakshatraIndex;
-  
-  const moonDailyMotion = 13.176358;
-  const nakshatraDurationHours = (NAKSHATRA_DURATION_DEG / moonDailyMotion) * 24;
-  const nakshatraDurationMs = nakshatraDurationHours * 60 * 60 * 1000;
-  
-  const timeIntoNakshatra = fractionIntoNakshatra * nakshatraDurationMs;
-  const timeUntilEnd = nakshatraDurationMs - timeIntoNakshatra;
-  
-  const startDate = new Date(date.getTime() - timeIntoNakshatra);
-  const endDate = new Date(date.getTime() + timeUntilEnd);
+  const currentNakshatra = getNakshatraIndex(date);
+  const startDate = searchNakshatraStart(date, currentNakshatra);
+  const endDate = searchNakshatraEnd(date, currentNakshatra);
   
   return {
     startTime: formatTime(startDate, timezone),
@@ -92,13 +200,13 @@ export function getTithi(date: Date): { name: string; nameTelugu: string; number
   let tithiIndex: number;
   
   if (tithiNum < 15) {
-    paksha = 0;
+    paksha = 0; // Shukla
     tithiIndex = tithiNum;
   } else {
-    paksha = 1;
+    paksha = 1; // Krishna
     const krishnaTithi = tithiNum - 15;
     if (krishnaTithi === 14) {
-      tithiIndex = 15;
+      tithiIndex = 15; // Amavasya
     } else {
       tithiIndex = krishnaTithi;
     }
@@ -114,9 +222,7 @@ export function getTithi(date: Date): { name: string; nameTelugu: string; number
 }
 
 export function getNakshatra(date: Date): { name: string; nameTelugu: string; index: number } {
-  const jd = getJulianDay(date);
-  const moonLong = getMoonLongitude(jd);
-  const nakshatraIndex = Math.floor(moonLong / NAKSHATRA_DURATION_DEG) % 27;
+  const nakshatraIndex = getNakshatraIndex(date);
   
   return {
     name: nakshatraNames[nakshatraIndex],
@@ -125,52 +231,59 @@ export function getNakshatra(date: Date): { name: string; nameTelugu: string; in
   };
 }
 
-function getJulianDay(date: Date): number {
-  const year = date.getUTCFullYear();
-  const month = date.getUTCMonth() + 1;
-  const day = date.getUTCDate() + date.getUTCHours() / 24 + date.getUTCMinutes() / 1440;
+// Find the most recent new moon before or on the given date
+function findPreviousNewMoon(date: Date): Date {
+  const astroTime = Astronomy.MakeTime(date);
+  // Search backwards for new moon (phase 0)
+  const newMoon = Astronomy.SearchMoonPhase(0, astroTime, -30);
+  return newMoon ? newMoon.date : date;
+}
+
+// Find the next new moon after the given date
+function findNextNewMoon(date: Date): Date {
+  const astroTime = Astronomy.MakeTime(date);
+  const newMoon = Astronomy.SearchMoonPhase(0, astroTime, 30);
+  return newMoon ? newMoon.date : date;
+}
+
+// Telugu month is determined by the lunar month
+// Reference: Chaitra is the first month, starting around March/April new moon
+export function getTeluguMonth(date: Date): { name: string; nameEnglish: string; index: number } {
+  // For Telugu calendar, the month starts after new moon (Amanta/Amavasya system)
+  // Find the new moon that starts the current lunar month
+  const prevNewMoon = findPreviousNewMoon(date);
+  const nextNewMoon = findNextNewMoon(date);
   
-  let y = year;
-  let m = month;
+  // If we're within 12 hours of a new moon, use the upcoming month
+  // This handles edge cases like Ugadi morning when new moon is same day
+  const hoursToNextNewMoon = (nextNewMoon.getTime() - date.getTime()) / (1000 * 60 * 60);
+  const monthStartNewMoon = hoursToNextNewMoon < 12 ? nextNewMoon : prevNewMoon;
   
-  if (m <= 2) {
-    y -= 1;
-    m += 12;
+  // Find Chaitra new moon - the new moon in March/April closest to spring equinox
+  // Chaitra starts with the new moon that falls between mid-March and mid-April
+  const year = date.getFullYear();
+  
+  // Search for the new moon closest to March 21 (spring equinox)
+  const springEquinox = new Date(Date.UTC(year, 2, 21)); // March 21
+  const chaitraNewMoon = Astronomy.SearchMoonPhase(0, Astronomy.MakeTime(springEquinox), -15);
+  
+  if (!chaitraNewMoon) {
+    return { name: teluguMonths[0], nameEnglish: teluguMonthsEnglish[0], index: 0 };
   }
   
-  const a = Math.floor(y / 100);
-  const b = 2 - a + Math.floor(a / 4);
+  // Calculate months since Chaitra new moon
+  const msDiff = monthStartNewMoon.getTime() - chaitraNewMoon.date.getTime();
+  const daysDiff = msDiff / (24 * 60 * 60 * 1000);
+  let monthsSinceChaitra = Math.round(daysDiff / 29.53);
   
-  return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + day + b - 1524.5;
-}
-
-function getMoonLongitude(jd: number): number {
-  const T = (jd - 2451545.0) / 36525;
-  let L = 218.3164477 + 481267.88123421 * T - 0.0015786 * T * T;
-  L = L % 360;
-  if (L < 0) L += 360;
-  return L;
-}
-
-export function getTeluguMonth(date: Date): { name: string; nameEnglish: string; index: number } {
-  // Telugu months are lunar months. A month starts after Amavasya (new moon).
-  // Reference: New Moon on Jan 18, 2026 starts Magha month (index 10)
-  // Chaitra (index 0) starts around March 29, 2026
-  
-  // Calculate which lunar month we're in based on synodic cycles from reference
-  const diff = date.getTime() - NEW_MOON_REFERENCE;
-  const daysSinceRef = diff / MS_PER_DAY;
-  const lunarMonthsSinceRef = Math.floor(daysSinceRef / SYNODIC_MONTH);
-  
-  // Reference new moon (Jan 18, 2026) is start of Magha (index 10)
-  // Each synodic month advances to next Telugu month
-  let teluguIndex = (10 + lunarMonthsSinceRef) % 12;
-  if (teluguIndex < 0) teluguIndex += 12;
+  // Normalize to 0-11 range
+  while (monthsSinceChaitra < 0) monthsSinceChaitra += 12;
+  monthsSinceChaitra = monthsSinceChaitra % 12;
   
   return {
-    name: teluguMonths[teluguIndex],
-    nameEnglish: teluguMonthsEnglish[teluguIndex],
-    index: teluguIndex,
+    name: teluguMonths[monthsSinceChaitra],
+    nameEnglish: teluguMonthsEnglish[monthsSinceChaitra],
+    index: monthsSinceChaitra,
   };
 }
 
@@ -178,13 +291,64 @@ export function getTeluguYear(date: Date): number {
   const year = date.getFullYear();
   const month = date.getMonth();
   
-  if (month < 3) {
-    return year + 56;
+  // Telugu year changes around Ugadi (March/April)
+  // Saka era: Gregorian year - 78 (before March) or - 77 (after March)
+  if (month < 3) { // Before April
+    return year + 56; // Saka era approximation for display
   }
   return year + 57;
 }
 
+// Get sunrise using astronomy-engine
 export function getSunrise(date: Date, lat: number = 17.385, lon: number = 78.4867, timezoneOffset: number = 5.5): string {
+  try {
+    const observer = new Astronomy.Observer(lat, lon, 0);
+    const astroDate = Astronomy.MakeTime(date);
+    const sunrise = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, +1, astroDate, 1);
+    
+    if (sunrise) {
+      return formatTimeFromDate(sunrise.date, timezoneOffset);
+    }
+  } catch (e) {
+    // Fallback to simple calculation
+  }
+  
+  // Fallback calculation
+  return fallbackSunrise(date, lat, lon, timezoneOffset);
+}
+
+// Get sunset using astronomy-engine
+export function getSunset(date: Date, lat: number = 17.385, lon: number = 78.4867, timezoneOffset: number = 5.5): string {
+  try {
+    const observer = new Astronomy.Observer(lat, lon, 0);
+    const astroDate = Astronomy.MakeTime(date);
+    const sunset = Astronomy.SearchRiseSet(Astronomy.Body.Sun, observer, -1, astroDate, 1);
+    
+    if (sunset) {
+      return formatTimeFromDate(sunset.date, timezoneOffset);
+    }
+  } catch (e) {
+    // Fallback to simple calculation
+  }
+  
+  // Fallback calculation
+  return fallbackSunset(date, lat, lon, timezoneOffset);
+}
+
+function formatTimeFromDate(date: Date, timezoneOffset: number): string {
+  const utcHours = date.getUTCHours();
+  const utcMinutes = date.getUTCMinutes();
+  const totalMinutes = utcHours * 60 + utcMinutes + timezoneOffset * 60;
+  
+  let hours = Math.floor(totalMinutes / 60) % 24;
+  const minutes = Math.round(totalMinutes % 60);
+  
+  if (hours < 0) hours += 24;
+  
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+function fallbackSunrise(date: Date, lat: number, lon: number, timezoneOffset: number): string {
   const dayOfYear = getDayOfYear(date);
   const B = (2 * Math.PI / 365) * (dayOfYear - 81);
   const EoT = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
@@ -205,7 +369,7 @@ export function getSunrise(date: Date, lat: number = 17.385, lon: number = 78.48
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }
 
-export function getSunset(date: Date, lat: number = 17.385, lon: number = 78.4867, timezoneOffset: number = 5.5): string {
+function fallbackSunset(date: Date, lat: number, lon: number, timezoneOffset: number): string {
   const dayOfYear = getDayOfYear(date);
   const B = (2 * Math.PI / 365) * (dayOfYear - 81);
   const EoT = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
@@ -229,7 +393,7 @@ export function getSunset(date: Date, lat: number = 17.385, lon: number = 78.486
 function getDayOfYear(date: Date): number {
   const start = new Date(date.getFullYear(), 0, 0);
   const diff = date.getTime() - start.getTime();
-  return Math.floor(diff / MS_PER_DAY);
+  return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
 function getTimezoneCoordinates(timezone: string): { lat: number; lon: number; offset: number } {
@@ -319,7 +483,6 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
   const nakshatraTimings = getNakshatraTimings(sunriseDate, timezone);
   
   // Telugu date is the tithi number within the paksha (1-15 for each fortnight)
-  // tithi.number is 0-29, where 0-14 is Shukla (bright) and 15-29 is Krishna (dark)
   const tithiInPaksha = (tithi.number % 15) + 1;
   const teluguDate = tithiInPaksha;
   

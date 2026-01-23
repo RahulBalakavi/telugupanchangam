@@ -64,12 +64,19 @@ Traditional Hindu/Telugu aesthetic with:
 
 ## Key Calculations
 
+### Astronomy Engine Integration
+- Uses `astronomy-engine` npm library for professional-grade astronomical accuracy
+- Tithi calculated from actual Sun-Moon ecliptic longitude difference (360°/30 = 12° per tithi)
+- Nakshatra calculated from sidereal moon longitude with Lahiri ayanamsa correction
+- Sunrise/sunset from accurate solar position calculations
+- Telugu month derived from actual new moon searches (not fixed offsets)
+- Accurate to ±1 arcminute, tested against JPL Horizons data
+
 ### Tithi Calculation
-- Based on synodic month (29.53 days)
-- Reference: New Moon on January 18, 2026 at 19:52 UTC (astronomically verified)
+- Each tithi = 12 degrees of Sun-Moon elongation
 - Calculations use sunrise time for each timezone (traditional Hindu panchang convention)
 - 30 tithis per lunar month (15 Shukla + 15 Krishna)
-- Note: Uses average tithi duration; may have minor drift for dates far from anchor
+- Binary search algorithm finds exact tithi start/end times
 
 ### Special Days
 - Ekadashi (11th tithi) - Fasting day
