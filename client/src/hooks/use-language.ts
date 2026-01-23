@@ -14,9 +14,9 @@ export function useLanguageProvider() {
   const [language, setLanguageState] = useState<Language>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("panchangam-language");
-      return (saved as Language) || "telugu";
+      return (saved as Language) || "english";
     }
-    return "telugu";
+    return "english";
   });
 
   useEffect(() => {
