@@ -101,6 +101,7 @@ export async function registerRoutes(
           notifyAmavasya: true,
           notifyTempleEvents: true,
           notifyTime: "06:00",
+          timezone: "Asia/Kolkata",
         });
       }
     } catch (error) {
@@ -171,12 +172,17 @@ export async function registerRoutes(
 
   app.post("/api/push/unsubscribe", isAuthenticated, async (req, res) => {
     try {
+      const userId = (req.user as { id: string })?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
       const { endpoint } = req.body;
       if (!endpoint) {
         return res.status(400).json({ error: "Endpoint required" });
       }
 
-      await storage.deletePushSubscription(endpoint);
+      await storage.deletePushSubscriptionForUser(userId, endpoint);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to unsubscribe" });

@@ -10,7 +10,7 @@ import {
   type InsertNotificationPreferenceDB
 } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -21,6 +21,7 @@ export interface IStorage {
   savePushSubscription(subscription: InsertPushSubscription): Promise<PushSubscription>;
   getPushSubscriptionsByUserId(userId: string): Promise<PushSubscription[]>;
   deletePushSubscription(endpoint: string): Promise<void>;
+  deletePushSubscriptionForUser(userId: string, endpoint: string): Promise<void>;
   getAllPushSubscriptions(): Promise<PushSubscription[]>;
   
   // Notification preferences
@@ -78,6 +79,12 @@ export class DatabaseStorage implements IStorage {
 
   async deletePushSubscription(endpoint: string): Promise<void> {
     await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  }
+
+  async deletePushSubscriptionForUser(userId: string, endpoint: string): Promise<void> {
+    await db.delete(pushSubscriptions).where(
+      and(eq(pushSubscriptions.userId, userId), eq(pushSubscriptions.endpoint, endpoint))
+    );
   }
 
   async getAllPushSubscriptions(): Promise<PushSubscription[]> {

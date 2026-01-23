@@ -9,11 +9,11 @@ This application provides:
 - **Telugu Calendar**: Full month calendar with Telugu date overlays and special day indicators
 - **Festivals**: Curated list of major Hindu festivals with Telugu and English descriptions
 - **Temple Events**: Important temple activities from famous temples like Tirumala, Srisailam, Bhadrachalam, etc.
-- **Notifications**: Browser notification settings for Ekadashi, Chaturthi, Purnima, and Amavasya
+- **Push Notifications**: Background push notifications for special tithis (Ekadashi, Chaturthi, Shashthi, Ashtami, Purnima, Amavasya) - works even when app is closed on iOS 16.4+ and all Android devices
 - **Timezone Support**: Users can select their timezone to see localized times for tithi, nakshatra, sunrise/sunset
 - **Language Toggle**: Switch between Telugu and English for users who can't read Telugu script
 - **Google Authentication**: Secure login via Replit Auth with Google sign-in
-- **iPhone Installable (PWA)**: Can be installed on iPhone home screen for app-like experience
+- **iPhone Installable (PWA)**: Can be installed on iPhone home screen for app-like experience with background notifications
 
 ## Architecture
 
@@ -34,6 +34,8 @@ This application provides:
 - `server/panchang.ts` - Panchang calculation algorithms (tithi, nakshatra, moon phase)
 - `server/data.ts` - Curated festival and temple event data
 - `server/routes.ts` - API endpoints
+- `server/push-service.ts` - Web Push notification service and scheduler
+- `server/storage.ts` - Database operations for users, subscriptions, preferences
 
 ### Shared
 - `shared/schema.ts` - TypeScript interfaces and constants for tithis, nakshatras, Telugu months
@@ -49,9 +51,34 @@ All endpoints except `/api/login`, `/api/logout`, `/api/auth/user` require authe
 - `GET /api/temple-events/upcoming` - Upcoming temple events
 - `GET /api/notifications/preferences` - Get notification preferences
 - `POST /api/notifications/preferences` - Save notification preferences
+- `GET /api/push/vapid-public-key` - Get VAPID public key for push subscription
+- `POST /api/push/subscribe` - Subscribe to push notifications
+- `POST /api/push/unsubscribe` - Unsubscribe from push notifications
 - `GET /api/auth/user` - Get current logged-in user
 - `GET /api/login` - Initiate Google OAuth login
 - `GET /api/logout` - Logout and clear session
+
+## Push Notifications
+
+### How It Works
+1. User enables notifications in Settings tab
+2. Browser requests permission and creates a push subscription
+3. Subscription is saved to database with user's preferences
+4. Server scheduler runs every 5 minutes checking each user's timezone
+5. When it's the user's notification time and it's a special tithi day, push notification is sent
+
+### iOS PWA Requirements
+- iOS 16.4+ required for push notifications
+- App must be installed to home screen ("Add to Home Screen")
+- User must grant notification permission from within the installed PWA
+
+### Special Tithis for Notifications
+- Chaturthi (4th) - Ganesha worship
+- Shashthi (6th) - Subrahmanya worship  
+- Ashtami (8th) - Durga worship
+- Ekadashi (11th) - Fasting day
+- Purnima (15th Shukla) - Full moon
+- Amavasya (15th Krishna) - New moon
 
 ## Design System
 

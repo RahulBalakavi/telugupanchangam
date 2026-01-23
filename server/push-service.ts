@@ -121,6 +121,35 @@ function shouldNotify(
   return { shouldSend, tithiName, tithiTelugu };
 }
 
+function getDateInTimezone(timezone: string): { year: number; month: number; day: number; hour: number; minute: number } {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: timezone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  
+  const parts = formatter.formatToParts(now);
+  const values: Record<string, number> = {};
+  for (const part of parts) {
+    if (part.type !== "literal") {
+      values[part.type] = parseInt(part.value, 10);
+    }
+  }
+  
+  return {
+    year: values.year,
+    month: values.month,
+    day: values.day,
+    hour: values.hour === 24 ? 0 : values.hour,
+    minute: values.minute,
+  };
+}
+
 export async function checkAndSendNotifications(): Promise<void> {
   console.log("Running notification check at", new Date().toISOString());
   
@@ -132,16 +161,15 @@ export async function checkAndSendNotifications(): Promise<void> {
     const timezone = prefs.timezone || "Asia/Kolkata";
     const notifyTime = prefs.notifyTime || "06:00";
     
-    const now = new Date();
-    const userTime = new Date(now.toLocaleString("en-US", { timeZone: timezone }));
-    const currentHour = userTime.getHours();
-    const currentMinute = userTime.getMinutes();
+    const userDateTime = getDateInTimezone(timezone);
+    const currentHour = userDateTime.hour;
+    const currentMinute = userDateTime.minute;
     
     const [targetHour, targetMinute] = notifyTime.split(":").map(Number);
     
     if (currentHour === targetHour && currentMinute >= targetMinute && currentMinute < targetMinute + 5) {
-      const today = new Date(userTime.getFullYear(), userTime.getMonth(), userTime.getDate());
-      const todayStr = `${userTime.getFullYear()}-${String(userTime.getMonth() + 1).padStart(2, "0")}-${String(userTime.getDate()).padStart(2, "0")}`;
+      const todayStr = `${userDateTime.year}-${String(userDateTime.month).padStart(2, "0")}-${String(userDateTime.day).padStart(2, "0")}`;
+      const today = new Date(Date.UTC(userDateTime.year, userDateTime.month - 1, userDateTime.day, 12, 0, 0));
       const panchang = getPanchangForDate(today, timezone);
       
       const tithiNumber = panchang.tithiNumber;

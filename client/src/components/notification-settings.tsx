@@ -29,6 +29,18 @@ async function subscribeToPush(): Promise<PushSubscription | null> {
   try {
     const registration = await navigator.serviceWorker.ready;
     
+    const existingSubscription = await registration.pushManager.getSubscription();
+    if (existingSubscription) {
+      const subscribeResponse = await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(existingSubscription.toJSON()),
+      });
+      if (subscribeResponse.ok) {
+        return existingSubscription;
+      }
+    }
+    
     const response = await fetch("/api/push/vapid-public-key");
     const { publicKey } = await response.json();
     
