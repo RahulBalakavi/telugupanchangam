@@ -100,6 +100,8 @@ export interface NotificationPreference {
   enabled: boolean;
   notifyEkadashi: boolean;
   notifyChaturthi: boolean;
+  notifyShashthi: boolean;
+  notifyAshtami: boolean;
   notifyPurnima: boolean;
   notifyAmavasya: boolean;
   notifyTempleEvents: boolean;
@@ -110,6 +112,8 @@ export const notificationPreferenceSchema = z.object({
   enabled: z.boolean(),
   notifyEkadashi: z.boolean(),
   notifyChaturthi: z.boolean(),
+  notifyShashthi: z.boolean(),
+  notifyAshtami: z.boolean(),
   notifyPurnima: z.boolean(),
   notifyAmavasya: z.boolean(),
   notifyTempleEvents: z.boolean(),

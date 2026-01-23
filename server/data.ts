@@ -280,6 +280,8 @@ let notificationPreferences: NotificationPreference = {
   enabled: false,
   notifyEkadashi: true,
   notifyChaturthi: true,
+  notifyShashthi: true,
+  notifyAshtami: true,
   notifyPurnima: true,
   notifyAmavasya: true,
   notifyTempleEvents: true,

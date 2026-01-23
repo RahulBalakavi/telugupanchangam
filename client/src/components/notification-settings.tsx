@@ -21,6 +21,8 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
     enabled: preferences?.enabled ?? false,
     notifyEkadashi: preferences?.notifyEkadashi ?? true,
     notifyChaturthi: preferences?.notifyChaturthi ?? true,
+    notifyShashthi: preferences?.notifyShashthi ?? true,
+    notifyAshtami: preferences?.notifyAshtami ?? true,
     notifyPurnima: preferences?.notifyPurnima ?? true,
     notifyAmavasya: preferences?.notifyAmavasya ?? true,
     notifyTempleEvents: preferences?.notifyTempleEvents ?? true,
@@ -39,6 +41,8 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
         enabled: preferences.enabled,
         notifyEkadashi: preferences.notifyEkadashi,
         notifyChaturthi: preferences.notifyChaturthi,
+        notifyShashthi: preferences.notifyShashthi,
+        notifyAshtami: preferences.notifyAshtami,
         notifyPurnima: preferences.notifyPurnima,
         notifyAmavasya: preferences.notifyAmavasya,
         notifyTempleEvents: preferences.notifyTempleEvents,
@@ -167,6 +171,42 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
               }
               disabled={!settings.enabled}
               data-testid="switch-notify-chaturthi"
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="notify-shashthi">Shashthi (షష్ఠి)</Label>
+              <p className="text-sm text-muted-foreground">
+                6th day, sacred to Lord Subrahmanya
+              </p>
+            </div>
+            <Switch
+              id="notify-shashthi"
+              checked={settings.notifyShashthi}
+              onCheckedChange={(checked) =>
+                setSettings((prev) => ({ ...prev, notifyShashthi: checked }))
+              }
+              disabled={!settings.enabled}
+              data-testid="switch-notify-shashthi"
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="notify-ashtami">Ashtami (అష్టమి)</Label>
+              <p className="text-sm text-muted-foreground">
+                8th day, sacred to Goddess Durga
+              </p>
+            </div>
+            <Switch
+              id="notify-ashtami"
+              checked={settings.notifyAshtami}
+              onCheckedChange={(checked) =>
+                setSettings((prev) => ({ ...prev, notifyAshtami: checked }))
+              }
+              disabled={!settings.enabled}
+              data-testid="switch-notify-ashtami"
             />
           </div>
 
