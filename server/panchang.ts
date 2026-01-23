@@ -101,9 +101,14 @@ export function getTithiTimings(date: Date, timezone: string = "Asia/Kolkata"): 
   const startDate = searchTithiStart(date, currentTithi);
   const endDate = searchTithiEnd(date, currentTithi);
   
+  // Check if end date is on a different day than the reference date
+  const referenceDay = getDateInTimezone(date, timezone);
+  const endDay = getDateInTimezone(endDate, timezone);
+  const daysDiff = endDay - referenceDay;
+  
   return {
     startTime: formatTime(startDate, timezone),
-    endTime: formatTime(endDate, timezone),
+    endTime: formatTime(endDate, timezone) + (daysDiff > 0 ? ` (+${daysDiff})` : ""),
   };
 }
 
@@ -170,9 +175,14 @@ export function getNakshatraTimings(date: Date, timezone: string = "Asia/Kolkata
   const startDate = searchNakshatraStart(date, currentNakshatra);
   const endDate = searchNakshatraEnd(date, currentNakshatra);
   
+  // Check if end date is on a different day than the reference date
+  const referenceDay = getDateInTimezone(date, timezone);
+  const endDay = getDateInTimezone(endDate, timezone);
+  const daysDiff = endDay - referenceDay;
+  
   return {
     startTime: formatTime(startDate, timezone),
-    endTime: formatTime(endDate, timezone),
+    endTime: formatTime(endDate, timezone) + (daysDiff > 0 ? ` (+${daysDiff})` : ""),
   };
 }
 
@@ -190,6 +200,17 @@ function formatTime(date: Date, timezone: string = "Asia/Kolkata"): string {
     const period = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours % 12 || 12;
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
+  }
+}
+
+// Get the day of the year in a specific timezone for date comparison
+function getDateInTimezone(date: Date, timezone: string): number {
+  try {
+    const dateStr = date.toLocaleDateString('en-CA', { timeZone: timezone }); // YYYY-MM-DD format
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return year * 10000 + month * 100 + day; // Unique number for each day
+  } catch {
+    return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
   }
 }
 
