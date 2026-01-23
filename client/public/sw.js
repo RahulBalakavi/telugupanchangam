@@ -1,4 +1,4 @@
-const CACHE_NAME = 'panchangam-v2';
+const CACHE_NAME = 'panchangam-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json'
@@ -30,6 +30,59 @@ self.addEventListener('activate', (event) => {
     })
   );
   self.clients.claim();
+});
+
+// Handle push notifications
+self.addEventListener('push', (event) => {
+  if (!event.data) {
+    console.log('Push event but no data');
+    return;
+  }
+
+  try {
+    const data = event.data.json();
+    const options = {
+      body: data.body || 'New notification from Telugu Panchangam',
+      icon: data.icon || '/icons/icon-192.png',
+      badge: data.badge || '/icons/icon-72.png',
+      tag: data.tag || 'panchangam-notification',
+      requireInteraction: true,
+      data: data.data || {},
+      vibrate: [200, 100, 200],
+      actions: [
+        { action: 'open', title: 'Open App' },
+        { action: 'close', title: 'Dismiss' }
+      ]
+    };
+
+    event.waitUntil(
+      self.registration.showNotification(data.title || 'Telugu Panchangam', options)
+    );
+  } catch (error) {
+    console.error('Error processing push event:', error);
+  }
+});
+
+// Handle notification click
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'close') {
+    return;
+  }
+
+  const urlToOpen = event.notification.data?.url || '/';
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      return clients.openWindow(urlToOpen);
+    })
+  );
 });
 
 self.addEventListener('fetch', (event) => {

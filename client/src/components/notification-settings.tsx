@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bell, BellOff, Clock } from "lucide-react";
+import { Bell, BellOff, Clock, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { NotificationPreference } from "@shared/schema";
 
@@ -14,9 +14,78 @@ interface NotificationSettingsProps {
   isLoading?: boolean;
 }
 
+async function urlBase64ToUint8Array(base64String: string): Promise<Uint8Array> {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function subscribeToPush(): Promise<PushSubscription | null> {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    
+    const response = await fetch("/api/push/vapid-public-key");
+    const { publicKey } = await response.json();
+    
+    if (!publicKey) {
+      console.error("No VAPID public key available");
+      return null;
+    }
+    
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: await urlBase64ToUint8Array(publicKey),
+    });
+    
+    const subscribeResponse = await fetch("/api/push/subscribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(subscription.toJSON()),
+    });
+    
+    if (!subscribeResponse.ok) {
+      throw new Error("Failed to save subscription");
+    }
+    
+    return subscription;
+  } catch (error) {
+    console.error("Push subscription failed:", error);
+    return null;
+  }
+}
+
+async function unsubscribeFromPush(): Promise<boolean> {
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    
+    if (subscription) {
+      await fetch("/api/push/unsubscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint: subscription.endpoint }),
+      });
+      
+      await subscription.unsubscribe();
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Push unsubscribe failed:", error);
+    return false;
+  }
+}
+
 export function NotificationSettings({ preferences, onSave, isLoading }: NotificationSettingsProps) {
   const { toast } = useToast();
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [pushSupported, setPushSupported] = useState(false);
   const [settings, setSettings] = useState({
     enabled: preferences?.enabled ?? false,
     notifyEkadashi: preferences?.notifyEkadashi ?? true,
@@ -32,6 +101,9 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
   useEffect(() => {
     if ("Notification" in window) {
       setNotificationPermission(Notification.permission);
+    }
+    if ("serviceWorker" in navigator && "PushManager" in window) {
+      setPushSupported(true);
     }
   }, []);
 
@@ -61,21 +133,63 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
       return;
     }
 
-    const permission = await Notification.requestPermission();
-    setNotificationPermission(permission);
+    setIsSubscribing(true);
+    
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationPermission(permission);
 
-    if (permission === "granted") {
-      setSettings((prev) => ({ ...prev, enabled: true }));
-      toast({
-        title: "Notifications enabled",
-        description: "You'll receive daily reminders about special days",
-      });
+      if (permission === "granted") {
+        if (pushSupported) {
+          const subscription = await subscribeToPush();
+          if (subscription) {
+            setSettings((prev) => ({ ...prev, enabled: true }));
+            toast({
+              title: "Notifications enabled",
+              description: "You'll receive daily reminders about special days, even when the app is closed",
+            });
+          } else {
+            toast({
+              title: "Partial setup",
+              description: "Notifications enabled but background push may not work",
+              variant: "destructive",
+            });
+          }
+        } else {
+          setSettings((prev) => ({ ...prev, enabled: true }));
+          toast({
+            title: "Notifications enabled",
+            description: "You'll receive notifications when the app is open",
+          });
+        }
+      } else {
+        toast({
+          title: "Permission denied",
+          description: "You won't receive notifications. You can change this in browser settings.",
+          variant: "destructive",
+        });
+      }
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
+  const handleToggleEnabled = async (checked: boolean) => {
+    if (checked && pushSupported && notificationPermission === "granted") {
+      setIsSubscribing(true);
+      try {
+        const subscription = await subscribeToPush();
+        if (subscription) {
+          setSettings((prev) => ({ ...prev, enabled: true }));
+        }
+      } finally {
+        setIsSubscribing(false);
+      }
+    } else if (!checked) {
+      await unsubscribeFromPush();
+      setSettings((prev) => ({ ...prev, enabled: false }));
     } else {
-      toast({
-        title: "Permission denied",
-        description: "You won't receive notifications. You can change this in browser settings.",
-        variant: "destructive",
-      });
+      setSettings((prev) => ({ ...prev, enabled: checked }));
     }
   };
 
@@ -105,16 +219,29 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
         </CardTitle>
         <CardDescription>
           Get daily notifications about special days and temple events
+          {pushSupported && " (works even when app is closed)"}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {notificationPermission !== "granted" && (
           <div className="p-4 rounded-md bg-muted">
             <p className="text-sm mb-3">
-              Enable browser notifications to receive daily reminders
+              Enable notifications to receive daily reminders about special tithis like Ekadashi, Shashthi, and more.
+              {pushSupported && " Notifications will work even when the app is closed."}
             </p>
-            <Button onClick={requestNotificationPermission} data-testid="button-enable-notifications">
-              Enable Notifications
+            <Button 
+              onClick={requestNotificationPermission} 
+              disabled={isSubscribing}
+              data-testid="button-enable-notifications"
+            >
+              {isSubscribing ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Setting up...
+                </>
+              ) : (
+                "Enable Notifications"
+              )}
             </Button>
           </div>
         )}
@@ -130,10 +257,8 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
             <Switch
               id="notifications-enabled"
               checked={settings.enabled}
-              onCheckedChange={(checked) =>
-                setSettings((prev) => ({ ...prev, enabled: checked }))
-              }
-              disabled={notificationPermission !== "granted"}
+              onCheckedChange={handleToggleEnabled}
+              disabled={notificationPermission !== "granted" || isSubscribing}
               data-testid="switch-notifications-enabled"
             />
           </div>
