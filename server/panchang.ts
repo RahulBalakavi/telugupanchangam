@@ -153,13 +153,19 @@ function getMoonLongitude(jd: number): number {
 }
 
 export function getTeluguMonth(date: Date): { name: string; nameEnglish: string; index: number } {
-  const month = date.getMonth();
-  const day = date.getDate();
+  // Telugu months are lunar months. A month starts after Amavasya (new moon).
+  // Reference: New Moon on Jan 18, 2026 starts Magha month (index 10)
+  // Chaitra (index 0) starts around March 29, 2026
   
-  let teluguIndex = (month + 9) % 12;
-  if (day < 15) {
-    teluguIndex = (teluguIndex + 11) % 12;
-  }
+  // Calculate which lunar month we're in based on synodic cycles from reference
+  const diff = date.getTime() - NEW_MOON_REFERENCE;
+  const daysSinceRef = diff / MS_PER_DAY;
+  const lunarMonthsSinceRef = Math.floor(daysSinceRef / SYNODIC_MONTH);
+  
+  // Reference new moon (Jan 18, 2026) is start of Magha (index 10)
+  // Each synodic month advances to next Telugu month
+  let teluguIndex = (10 + lunarMonthsSinceRef) % 12;
+  if (teluguIndex < 0) teluguIndex += 12;
   
   return {
     name: teluguMonths[teluguIndex],
