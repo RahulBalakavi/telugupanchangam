@@ -318,7 +318,10 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
   const tithiTimings = getTithiTimings(sunriseDate, timezone);
   const nakshatraTimings = getNakshatraTimings(sunriseDate, timezone);
   
-  const teluguDate = Math.floor(tithi.number / 2) + 1;
+  // Telugu date is the tithi number within the paksha (1-15 for each fortnight)
+  // tithi.number is 0-29, where 0-14 is Shukla (bright) and 15-29 is Krishna (dark)
+  const tithiInPaksha = (tithi.number % 15) + 1;
+  const teluguDate = tithiInPaksha;
   
   return {
     date: date.toISOString().split("T")[0],
