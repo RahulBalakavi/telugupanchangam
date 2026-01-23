@@ -1,7 +1,13 @@
-const CACHE_NAME = 'panchangam-v1';
+const CACHE_NAME = 'panchangam-v2';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json'
+];
+
+// Endpoints that should never be cached (time-sensitive data)
+const NO_CACHE_PATTERNS = [
+  '/api/panchang/today',
+  '/api/calendar/'
 ];
 
 self.addEventListener('install', (event) => {
@@ -33,7 +39,17 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
   
+  // Never cache time-sensitive panchang data - always fetch fresh
+  const shouldNotCache = NO_CACHE_PATTERNS.some(pattern => url.pathname.includes(pattern));
+  
   if (url.pathname.startsWith('/api/')) {
+    if (shouldNotCache) {
+      // Network only for time-sensitive data
+      event.respondWith(fetch(event.request));
+      return;
+    }
+    
+    // Network first, cache fallback for other API calls
     event.respondWith(
       fetch(event.request)
         .then((response) => {
