@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { z } from "zod";
 import {
   getPanchangForDate,
   getCalendarDays,
@@ -9,11 +10,11 @@ import {
   getFestivalsForDate,
   getUpcomingTempleEvents,
   getTempleEventsForDate,
-  getNotificationPreferences,
-  setNotificationPreferences,
 } from "./data";
 import { notificationPreferenceSchema } from "@shared/schema";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
+import { storage } from "./storage";
+import { getVapidPublicKey, startNotificationScheduler } from "./push-service";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -80,24 +81,110 @@ export async function registerRoutes(
     res.json(events);
   });
 
-  app.get("/api/notifications/preferences", isAuthenticated, (req, res) => {
-    const prefs = getNotificationPreferences();
-    res.json(prefs);
+  app.get("/api/notifications/preferences", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as { id: string })?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      const prefs = await storage.getNotificationPreferences(userId);
+      if (prefs) {
+        res.json(prefs);
+      } else {
+        res.json({
+          enabled: false,
+          notifyEkadashi: true,
+          notifyChaturthi: true,
+          notifyShashthi: true,
+          notifyAshtami: true,
+          notifyPurnima: true,
+          notifyAmavasya: true,
+          notifyTempleEvents: true,
+          notifyTime: "06:00",
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get preferences" });
+    }
   });
 
-  app.post("/api/notifications/preferences", isAuthenticated, (req, res) => {
+  app.post("/api/notifications/preferences", isAuthenticated, async (req, res) => {
     try {
+      const userId = (req.user as { id: string })?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+      
       const parsed = notificationPreferenceSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid preferences", details: parsed.error.errors });
       }
       
-      const updated = setNotificationPreferences(parsed.data);
+      const updated = await storage.saveNotificationPreferences({
+        userId,
+        ...parsed.data,
+      });
       res.json(updated);
     } catch (error) {
       res.status(400).json({ error: "Failed to save preferences" });
     }
   });
+
+  // Push notification endpoints
+  app.get("/api/push/vapid-public-key", isAuthenticated, (req, res) => {
+    res.json({ publicKey: getVapidPublicKey() });
+  });
+
+  const pushSubscriptionSchema = z.object({
+    endpoint: z.string(),
+    keys: z.object({
+      p256dh: z.string(),
+      auth: z.string(),
+    }),
+  });
+
+  app.post("/api/push/subscribe", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as { id: string })?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const parsed = pushSubscriptionSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid subscription", details: parsed.error.errors });
+      }
+
+      const subscription = await storage.savePushSubscription({
+        userId,
+        endpoint: parsed.data.endpoint,
+        p256dh: parsed.data.keys.p256dh,
+        auth: parsed.data.keys.auth,
+      });
+
+      res.json({ success: true, id: subscription.id });
+    } catch (error) {
+      console.error("Push subscribe error:", error);
+      res.status(500).json({ error: "Failed to save subscription" });
+    }
+  });
+
+  app.post("/api/push/unsubscribe", isAuthenticated, async (req, res) => {
+    try {
+      const { endpoint } = req.body;
+      if (!endpoint) {
+        return res.status(400).json({ error: "Endpoint required" });
+      }
+
+      await storage.deletePushSubscription(endpoint);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to unsubscribe" });
+    }
+  });
+
+  // Start the notification scheduler
+  startNotificationScheduler();
 
   return httpServer;
 }
