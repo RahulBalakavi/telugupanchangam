@@ -54,12 +54,16 @@ export interface PanchangData {
   tithiNumber: number;
   tithiStartTime: string;
   tithiEndTime: string;
+  nextTithi?: string;
+  nextTithiTelugu?: string;
   paksha: string;
   pakshaTelugu: string;
   nakshatra: string;
   nakshatraTelugu: string;
   nakshatraStartTime: string;
   nakshatraEndTime: string;
+  nextNakshatra?: string;
+  nextNakshatraTelugu?: string;
   sunrise: string;
   sunset: string;
   timezone: string;

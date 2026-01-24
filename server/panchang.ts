@@ -101,14 +101,16 @@ export function getTithiTimings(date: Date, timezone: string = "Asia/Kolkata"): 
   const startDate = searchTithiStart(date, currentTithi);
   const endDate = searchTithiEnd(date, currentTithi);
   
-  // Check if end date is on a different day than the reference date
+  // Check if start/end dates are on different days than the reference date
   const referenceDay = getDateInTimezone(date, timezone);
+  const startDay = getDateInTimezone(startDate, timezone);
   const endDay = getDateInTimezone(endDate, timezone);
-  const daysDiff = endDay - referenceDay;
+  const startDaysDiff = startDay - referenceDay;
+  const endDaysDiff = endDay - referenceDay;
   
   return {
-    startTime: formatTime(startDate, timezone),
-    endTime: formatTime(endDate, timezone) + (daysDiff > 0 ? ` (+${daysDiff})` : ""),
+    startTime: formatTime(startDate, timezone) + (startDaysDiff < 0 ? ` (${startDaysDiff})` : ""),
+    endTime: formatTime(endDate, timezone) + (endDaysDiff > 0 ? ` (+${endDaysDiff})` : ""),
   };
 }
 
@@ -175,14 +177,16 @@ export function getNakshatraTimings(date: Date, timezone: string = "Asia/Kolkata
   const startDate = searchNakshatraStart(date, currentNakshatra);
   const endDate = searchNakshatraEnd(date, currentNakshatra);
   
-  // Check if end date is on a different day than the reference date
+  // Check if start/end dates are on different days than the reference date
   const referenceDay = getDateInTimezone(date, timezone);
+  const startDay = getDateInTimezone(startDate, timezone);
   const endDay = getDateInTimezone(endDate, timezone);
-  const daysDiff = endDay - referenceDay;
+  const startDaysDiff = startDay - referenceDay;
+  const endDaysDiff = endDay - referenceDay;
   
   return {
-    startTime: formatTime(startDate, timezone),
-    endTime: formatTime(endDate, timezone) + (daysDiff > 0 ? ` (+${daysDiff})` : ""),
+    startTime: formatTime(startDate, timezone) + (startDaysDiff < 0 ? ` (${startDaysDiff})` : ""),
+    endTime: formatTime(endDate, timezone) + (endDaysDiff > 0 ? ` (+${endDaysDiff})` : ""),
   };
 }
 
