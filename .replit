@@ -45,5 +45,5 @@ integrations = ["javascript_log_in_with_replit:2.0.0", "javascript_database:1.0.
 [userenv]
 
 [userenv.shared]
-VAPID_PUBLIC_KEY = "BFm1hBcFbW5vXchLRsO1d6wqG42-hJsnSqU1CVxUP5UaCuycHzXIsoD21ps8X_mA3cUM6bhI7Il7w1OTIzWUdY8"
+VAPID_PUBLIC_KEY = "BKyDtAS-DefLshgFutbUDDPNuwv6jPvI4nMsSHJf5m4y3gwltTqy8KQGHlEJyeGjWiQ8b6wS0GnoptcbY4JkWY4"
 VAPID_SUBJECT = "mailto:panchangam@replit.app"
