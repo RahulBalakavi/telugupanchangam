@@ -97,6 +97,7 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
   const { toast } = useToast();
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>("default");
   const [isSubscribing, setIsSubscribing] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [pushSupported, setPushSupported] = useState(false);
   const [settings, setSettings] = useState({
     enabled: preferences?.enabled ?? false,
@@ -211,6 +212,38 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
       title: "Settings saved",
       description: "Your notification preferences have been updated",
     });
+  };
+
+  const handleTestNotification = async () => {
+    setIsTesting(true);
+    try {
+      const response = await fetch("/api/push/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        toast({
+          title: "Test sent!",
+          description: result.message,
+        });
+      } else {
+        toast({
+          title: "Test failed",
+          description: result.message || "Could not send test notification",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to send test notification",
+        variant: "destructive",
+      });
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   const timeOptions = Array.from({ length: 24 }, (_, i) => {
@@ -432,9 +465,29 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
           </div>
         </div>
 
-        <Button onClick={handleSave} className="w-full" disabled={isLoading} data-testid="button-save-settings">
-          Save Settings
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <Button onClick={handleSave} className="flex-1" disabled={isLoading} data-testid="button-save-settings">
+            Save Settings
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleTestNotification} 
+            disabled={!settings.enabled || isTesting}
+            data-testid="button-test-notification"
+          >
+            {isTesting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <Bell className="h-4 w-4 mr-2" />
+                Test Notification
+              </>
+            )}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

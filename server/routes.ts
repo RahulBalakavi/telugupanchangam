@@ -14,7 +14,7 @@ import {
 import { notificationPreferenceSchema } from "@shared/schema";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { storage } from "./storage";
-import { getVapidPublicKey, startNotificationScheduler } from "./push-service";
+import { getVapidPublicKey, startNotificationScheduler, sendNotificationToUser } from "./push-service";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -186,6 +186,32 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to unsubscribe" });
+    }
+  });
+
+  app.post("/api/push/test", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as { id: string })?.id;
+      if (!userId) {
+        return res.status(401).json({ error: "Not authenticated" });
+      }
+
+      const sentCount = await sendNotificationToUser(userId, {
+        title: "🙏 తెలుగు పంచాంగం - Test",
+        body: "This is a test notification. If you see this, push notifications are working!",
+        icon: "/icon-192.png",
+        tag: "test-notification",
+        data: { url: "/" }
+      });
+
+      if (sentCount > 0) {
+        res.json({ success: true, message: `Test notification sent to ${sentCount} device(s)` });
+      } else {
+        res.json({ success: false, message: "No active subscriptions found. Please enable notifications first." });
+      }
+    } catch (error) {
+      console.error("Test notification error:", error);
+      res.status(500).json({ error: "Failed to send test notification" });
     }
   });
 
