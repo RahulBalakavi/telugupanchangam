@@ -9,6 +9,7 @@ import { DayDetailModal } from "@/components/day-detail-modal";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { TimezoneSelector, getStoredTimezone, setStoredTimezone } from "@/components/timezone-selector";
 import { LanguageSelector } from "@/components/language-selector";
+import { InstallBanner } from "@/components/install-banner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Bell, Sparkles, LogOut, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -140,6 +141,7 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-4 py-6">
+        <InstallBanner />
         <Tabs defaultValue="calendar" className="space-y-6">
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-3" data-testid="tabs-main">
             <TabsTrigger value="calendar" className="gap-2" data-testid="tab-calendar">
