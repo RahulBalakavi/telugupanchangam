@@ -22,14 +22,15 @@ export async function registerRoutes(
 ): Promise<Server> {
   await setupAuth(app);
   registerAuthRoutes(app);
-  app.get("/api/panchang/today", isAuthenticated, (req, res) => {
+  // Public API routes - no authentication required
+  app.get("/api/panchang/today", (req, res) => {
     const today = new Date();
     const timezone = (req.query.timezone as string) || "Asia/Kolkata";
     const panchang = getPanchangForDate(today, timezone);
     res.json(panchang);
   });
 
-  app.get("/api/panchang/:date", isAuthenticated, (req, res) => {
+  app.get("/api/panchang/:date", (req, res) => {
     try {
       const date = new Date(req.params.date as string);
       if (isNaN(date.getTime())) {
@@ -43,7 +44,7 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/calendar/:year/:month", isAuthenticated, (req, res) => {
+  app.get("/api/calendar/:year/:month", (req, res) => {
     try {
       const year = parseInt(req.params.year as string);
       const month = parseInt(req.params.month as string);
@@ -69,17 +70,19 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/festivals/upcoming", isAuthenticated, (req, res) => {
+  app.get("/api/festivals/upcoming", (req, res) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const festivals = getUpcomingFestivals(limit);
     res.json(festivals);
   });
 
-  app.get("/api/temple-events/upcoming", isAuthenticated, (req, res) => {
+  app.get("/api/temple-events/upcoming", (req, res) => {
     const limit = parseInt(req.query.limit as string) || 10;
     const events = getUpcomingTempleEvents(limit);
     res.json(events);
   });
+
+  // Protected API routes - authentication required for notifications
 
   app.get("/api/notifications/preferences", isAuthenticated, async (req, res) => {
     try {

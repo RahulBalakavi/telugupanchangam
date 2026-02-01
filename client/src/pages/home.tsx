@@ -118,24 +118,26 @@ export default function Home() {
               <TimezoneSelector value={timezone} onChange={handleTimezoneChange} />
             </div>
             {user && (
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || "User"} />
-                  <AvatarFallback>
-                    {user.firstName?.[0] || user.email?.[0] || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm hidden md:inline" data-testid="text-user-name">
-                  {user.firstName || user.email}
-                </span>
-              </div>
+              <>
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || "User"} />
+                    <AvatarFallback>
+                      {user.firstName?.[0] || user.email?.[0] || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm hidden md:inline" data-testid="text-user-name">
+                    {user.firstName || user.email}
+                  </span>
+                </div>
+                <Button variant="ghost" size="icon" asChild data-testid="button-logout">
+                  <a href="/api/logout" title="Logout">
+                    <LogOut className="h-4 w-4" />
+                  </a>
+                </Button>
+              </>
             )}
             <ThemeToggle />
-            <Button variant="ghost" size="icon" asChild data-testid="button-logout">
-              <a href="/api/logout" title="Logout">
-                <LogOut className="h-4 w-4" />
-              </a>
-            </Button>
           </div>
         </div>
       </header>
@@ -226,11 +228,41 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <NotificationSettings
-              preferences={preferences}
-              onSave={(prefs) => savePrefsMutation.mutate(prefs)}
-              isLoading={loadingPrefs || savePrefsMutation.isPending}
-            />
+            {user ? (
+              <NotificationSettings
+                preferences={preferences}
+                onSave={(prefs) => savePrefsMutation.mutate(prefs)}
+                isLoading={loadingPrefs || savePrefsMutation.isPending}
+              />
+            ) : (
+              <Card data-testid="card-login-prompt">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Bell className="h-5 w-5 text-primary" />
+                    {t("నోటిఫికేషన్లు", "Notifications")}
+                  </CardTitle>
+                  <CardDescription>
+                    {t(
+                      "ప్రత్యేక తిథులు మరియు పండుగల గురించి నోటిఫికేషన్లు పొందండి",
+                      "Get notifications about special tithis and festivals"
+                    )}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-muted-foreground mb-4">
+                    {t(
+                      "నోటిఫికేషన్లను ఎనేబుల్ చేయడానికి దయచేసి లాగిన్ అవ్వండి",
+                      "Please sign in with Google to enable push notifications for special days like Ekadashi, Chaturthi, and more."
+                    )}
+                  </p>
+                  <Button asChild data-testid="button-login-notifications">
+                    <a href="/api/login">
+                      {t("Google తో లాగిన్ అవ్వండి", "Sign in with Google")}
+                    </a>
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
           </TabsContent>
         </Tabs>
       </main>
