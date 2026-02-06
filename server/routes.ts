@@ -4,6 +4,7 @@ import { z } from "zod";
 import {
   getPanchangForDate,
   getCalendarDays,
+  getTodayInTimezone,
 } from "./panchang";
 import {
   getUpcomingFestivals,
@@ -24,15 +25,17 @@ export async function registerRoutes(
   registerAuthRoutes(app);
   // Public API routes - no authentication required
   app.get("/api/panchang/today", (req, res) => {
-    const today = new Date();
     const timezone = (req.query.timezone as string) || "Asia/Kolkata";
+    const today = getTodayInTimezone(timezone);
     const panchang = getPanchangForDate(today, timezone);
     res.json(panchang);
   });
 
   app.get("/api/panchang/:date", (req, res) => {
     try {
-      const date = new Date(req.params.date as string);
+      const dateStr = req.params.date as string;
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const date = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
       if (isNaN(date.getTime())) {
         return res.status(400).json({ error: "Invalid date format" });
       }

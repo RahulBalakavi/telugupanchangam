@@ -218,6 +218,27 @@ function getDateInTimezone(date: Date, timezone: string): number {
   }
 }
 
+// Format a date as YYYY-MM-DD in a specific timezone
+function formatDateInTimezone(date: Date, timezone: string): string {
+  try {
+    return date.toLocaleDateString('en-CA', { timeZone: timezone }); // en-CA gives YYYY-MM-DD
+  } catch {
+    return date.toISOString().split("T")[0];
+  }
+}
+
+// Get today's date as a Date object representing the correct date in the given timezone
+// Uses noon UTC to avoid date boundary issues when converting between timezones
+export function getTodayInTimezone(timezone: string): Date {
+  try {
+    const dateStr = new Date().toLocaleDateString('en-CA', { timeZone: timezone });
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+  } catch {
+    return new Date();
+  }
+}
+
 export function getTithi(date: Date): { name: string; nameTelugu: string; number: number; paksha: string; pakshaTelugu: string } {
   const tithiNum = getTithiNumber(date);
   
@@ -496,7 +517,7 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
   const sunriseStr = getSunrise(date, lat, lon, offset);
   const [sunriseHour, sunriseMin] = sunriseStr.split(':').map(Number);
   const sunriseDate = new Date(date);
-  sunriseDate.setHours(sunriseHour, sunriseMin, 0, 0);
+  sunriseDate.setUTCHours(sunriseHour - offset, sunriseMin, 0, 0);
   
   const tithi = getTithi(sunriseDate);
   const nakshatra = getNakshatra(sunriseDate);
@@ -507,12 +528,13 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
   const tithiTimings = getTithiTimings(sunriseDate, timezone);
   const nakshatraTimings = getNakshatraTimings(sunriseDate, timezone);
   
-  // Telugu date is the tithi number within the paksha (1-15 for each fortnight)
   const tithiInPaksha = (tithi.number % 15) + 1;
   const teluguDate = tithiInPaksha;
   
+  const dateStr = formatDateInTimezone(date, timezone);
+  
   return {
-    date: date.toISOString().split("T")[0],
+    date: dateStr,
     teluguDate,
     teluguMonth: teluguMonth.name,
     teluguMonthEnglish: teluguMonth.nameEnglish,
@@ -539,25 +561,26 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
 }
 
 export function getCalendarDays(year: number, month: number, timezone: string = "Asia/Kolkata") {
-  const firstDay = new Date(year, month, 1);
-  const lastDay = new Date(year, month + 1, 0);
+  const firstDay = new Date(Date.UTC(year, month, 1, 12, 0, 0));
+  const lastDay = new Date(Date.UTC(year, month + 1, 0, 12, 0, 0));
   
   const startDate = new Date(firstDay);
-  startDate.setDate(startDate.getDate() - firstDay.getDay());
+  startDate.setUTCDate(startDate.getUTCDate() - firstDay.getUTCDay());
   
   const endDate = new Date(lastDay);
-  const daysToAdd = 6 - lastDay.getDay();
-  endDate.setDate(endDate.getDate() + daysToAdd);
+  const daysToAdd = 6 - lastDay.getUTCDay();
+  endDate.setUTCDate(endDate.getUTCDate() + daysToAdd);
   
   const days = [];
   const current = new Date(startDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const todayInTz = getTodayInTimezone(timezone);
+  const todayStr = formatDateInTimezone(todayInTz, timezone);
   
   while (current <= endDate) {
     const panchang = getPanchangForDate(current, timezone);
-    const isCurrentMonth = current.getMonth() === month;
-    const isToday = current.toDateString() === today.toDateString();
+    const isCurrentMonth = current.getUTCMonth() === month;
+    const currentStr = formatDateInTimezone(current, timezone);
+    const isToday = currentStr === todayStr;
     
     days.push({
       date: new Date(current),
@@ -568,7 +591,7 @@ export function getCalendarDays(year: number, month: number, timezone: string = 
       templeEvents: [] as TempleEvent[],
     });
     
-    current.setDate(current.getDate() + 1);
+    current.setUTCDate(current.getUTCDate() + 1);
   }
   
   return days;
