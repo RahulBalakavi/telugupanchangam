@@ -76,11 +76,11 @@ export function TempleEvents({ events, isLoading }: TempleEventsProps) {
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
                           <Calendar className="h-4 w-4" />
                           <span data-testid={`text-event-date-${event.id}`}>
-                            {new Date(event.startDate).toLocaleDateString("en-US", {
+                            {new Date(event.startDate + "T12:00:00").toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
                             })}
-                            {event.endDate && ` - ${new Date(event.endDate).toLocaleDateString("en-US", {
+                            {event.endDate && ` - ${new Date(event.endDate + "T12:00:00").toLocaleDateString("en-US", {
                               month: "short",
                               day: "numeric",
                             })}`}

@@ -384,12 +384,13 @@ export function getSunset(date: Date, lat: number = 17.385, lon: number = 78.486
 function formatTimeFromDate(date: Date, timezoneOffset: number): string {
   const utcHours = date.getUTCHours();
   const utcMinutes = date.getUTCMinutes();
-  const totalMinutes = utcHours * 60 + utcMinutes + timezoneOffset * 60;
+  let totalMinutes = utcHours * 60 + utcMinutes + timezoneOffset * 60;
   
-  let hours = Math.floor(totalMinutes / 60) % 24;
+  while (totalMinutes < 0) totalMinutes += 24 * 60;
+  totalMinutes = totalMinutes % (24 * 60);
+  
+  const hours = Math.floor(totalMinutes / 60);
   const minutes = Math.round(totalMinutes % 60);
-  
-  if (hours < 0) hours += 24;
   
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
 }

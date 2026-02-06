@@ -62,7 +62,7 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
               )}
             </CardTitle>
             <p className="text-muted-foreground mt-1" data-testid="text-english-date">
-              {new Date(panchang.date).toLocaleDateString('en-US', {
+              {new Date(panchang.date + "T12:00:00").toLocaleDateString('en-US', {
                 weekday: 'long',
                 year: 'numeric',
                 month: 'long',

@@ -93,7 +93,7 @@ export function FestivalsList({ festivals, title, isLoading }: FestivalsListProp
                     </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground mt-2" data-testid={`text-festival-date-${festival.id}`}>
-                    {new Date(festival.date).toLocaleDateString(language === "telugu" ? "te-IN" : "en-US", {
+                    {new Date(festival.date + "T12:00:00").toLocaleDateString(language === "telugu" ? "te-IN" : "en-US", {
                       weekday: "short",
                       month: "short",
                       day: "numeric",

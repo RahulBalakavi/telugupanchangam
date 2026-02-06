@@ -82,7 +82,7 @@ export default function Home() {
     if (!monthData?.days) return [];
     return monthData.days.map((day) => ({
       ...day,
-      date: new Date(day.date),
+      date: new Date(typeof day.date === 'string' ? day.date + "T12:00:00" : day.date),
     }));
   }, [monthData]);
 
