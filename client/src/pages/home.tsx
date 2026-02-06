@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { TodayPanchang } from "@/components/today-panchang";
 import { CalendarGrid } from "@/components/calendar-grid";
@@ -27,6 +27,8 @@ export default function Home() {
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [timezone, setTimezone] = useState(getStoredTimezone());
+  const [activeTab, setActiveTab] = useState("calendar");
+  const [highlightedDate, setHighlightedDate] = useState<string | null>(null);
 
   const handleTimezoneChange = (newTimezone: string) => {
     setTimezone(newTimezone);
@@ -61,6 +63,10 @@ export default function Home() {
     queryKey: ["/api/festivals/upcoming"],
   });
 
+  const { data: allFestivals, isLoading: loadingAllFestivals } = useQuery<Festival[]>({
+    queryKey: ["/api/festivals/all"],
+  });
+
   const { data: upcomingEvents, isLoading: loadingEvents } = useQuery<TempleEvent[]>({
     queryKey: ["/api/temple-events/upcoming"],
   });
@@ -82,7 +88,7 @@ export default function Home() {
     if (!monthData?.days) return [];
     return monthData.days.map((day) => ({
       ...day,
-      date: new Date(typeof day.date === 'string' ? day.date + "T12:00:00" : day.date),
+      date: new Date(typeof day.date === 'string' && !day.date.includes('T') ? day.date + "T12:00:00" : day.date),
     }));
   }, [monthData]);
 
@@ -92,11 +98,38 @@ export default function Home() {
   };
 
   const selectedDate = useMemo(() => {
+    if (highlightedDate) {
+      const target = new Date(highlightedDate + "T12:00:00");
+      return calendarDays.find(
+        (d) => d.date.toDateString() === target.toDateString()
+      )?.date;
+    }
     const today = new Date();
     return calendarDays.find(
       (d) => d.date.toDateString() === today.toDateString()
     )?.date;
-  }, [calendarDays]);
+  }, [calendarDays, highlightedDate]);
+
+  const navigateToFestival = useCallback((festival: Festival) => {
+    const festDate = new Date(festival.date + "T12:00:00");
+    setCurrentMonth(new Date(festDate.getFullYear(), festDate.getMonth(), 1));
+    setHighlightedDate(festival.date);
+    setActiveTab("calendar");
+    setTimeout(() => setHighlightedDate(null), 4000);
+  }, []);
+
+  useEffect(() => {
+    if (highlightedDate && calendarDays.length > 0) {
+      const target = new Date(highlightedDate + "T12:00:00");
+      const day = calendarDays.find(
+        (d) => d.date.toDateString() === target.toDateString()
+      );
+      if (day) {
+        setSelectedDay(day);
+        setModalOpen(true);
+      }
+    }
+  }, [highlightedDate, calendarDays]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -144,7 +177,7 @@ export default function Home() {
 
       <main className="container mx-auto px-4 py-6">
         <InstallBanner />
-        <Tabs defaultValue="calendar" className="space-y-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="grid w-full max-w-md mx-auto grid-cols-3" data-testid="tabs-main">
             <TabsTrigger value="calendar" className="gap-2" data-testid="tab-calendar">
               <Calendar className="h-4 w-4" />
@@ -171,14 +204,16 @@ export default function Home() {
                   onMonthChange={setCurrentMonth}
                   onDayClick={handleDayClick}
                   selectedDate={selectedDate}
+                  highlightedDate={highlightedDate}
                   isLoading={loadingMonth}
                 />
               </div>
               <div className="space-y-6">
                 <FestivalsList
                   festivals={upcomingFestivals || []}
-                  title="Upcoming Festivals"
+                  title={t("రాబోయే పండుగలు", "Upcoming Festivals")}
                   isLoading={loadingFestivals}
+                  onFestivalClick={navigateToFestival}
                 />
               </div>
             </div>
@@ -187,9 +222,11 @@ export default function Home() {
           <TabsContent value="events" className="space-y-6" data-testid="tabcontent-events">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <FestivalsList
-                festivals={upcomingFestivals || []}
-                title="All Upcoming Festivals"
-                isLoading={loadingFestivals}
+                festivals={allFestivals || []}
+                title={t("అన్ని పండుగలు", "All Festivals")}
+                isLoading={loadingAllFestivals}
+                showPast
+                onFestivalClick={navigateToFestival}
               />
               <TempleEvents events={upcomingEvents || []} isLoading={loadingEvents} />
             </div>

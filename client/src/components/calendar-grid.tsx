@@ -12,6 +12,7 @@ interface CalendarGridProps {
   onMonthChange: (date: Date) => void;
   onDayClick: (day: CalendarDay) => void;
   selectedDate?: Date;
+  highlightedDate?: string | null;
   isLoading?: boolean;
 }
 
@@ -24,6 +25,7 @@ export function CalendarGrid({
   onMonthChange,
   onDayClick,
   selectedDate,
+  highlightedDate,
   isLoading,
 }: CalendarGridProps) {
   const goToPreviousMonth = () => {
@@ -123,6 +125,10 @@ export function CalendarGrid({
           {days.map((day, index) => {
             const isSelected = selectedDate && 
               day.date.toDateString() === selectedDate.toDateString();
+            const dayDateStr = day.date instanceof Date && !isNaN(day.date.getTime()) 
+              ? day.date.toISOString().split('T')[0] 
+              : '';
+            const isHighlighted = highlightedDate && dayDateStr === highlightedDate;
             const dayOfWeek = day.date.getDay();
             const isSunday = dayOfWeek === 0;
             
@@ -135,10 +141,11 @@ export function CalendarGrid({
                   "hover-elevate active-elevate-2 text-left",
                   !day.isCurrentMonth && "opacity-40",
                   day.isToday && "ring-2 ring-primary ring-offset-1",
-                  isSelected && "bg-primary/10",
+                  isSelected && !isHighlighted && "bg-primary/10",
+                  isHighlighted && "ring-2 ring-accent ring-offset-2 bg-accent/15 animate-pulse",
                   isSunday && "text-destructive"
                 )}
-                data-testid={`button-day-${day.date.toISOString().split('T')[0]}`}
+                data-testid={`button-day-${dayDateStr || index}`}
               >
                 <div className="flex flex-col h-full">
                   <div className="flex items-start justify-between gap-1">

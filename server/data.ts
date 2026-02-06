@@ -302,9 +302,13 @@ export function getUpcomingFestivals(limit: number = 10): Festival[] {
   today.setHours(0, 0, 0, 0);
   
   return festivals
-    .filter((f) => new Date(f.date) >= today)
+    .filter((f) => new Date(f.date + "T12:00:00") >= today)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     .slice(0, limit);
+}
+
+export function getAllFestivals(): Festival[] {
+  return [...festivals].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }
 
 export function getFestivalsForDate(date: Date): Festival[] {

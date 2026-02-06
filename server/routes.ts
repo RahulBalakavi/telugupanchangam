@@ -8,6 +8,7 @@ import {
 } from "./panchang";
 import {
   getUpcomingFestivals,
+  getAllFestivals,
   getFestivalsForDate,
   getUpcomingTempleEvents,
   getTempleEventsForDate,
@@ -77,6 +78,11 @@ export async function registerRoutes(
     const limit = parseInt(req.query.limit as string) || 10;
     const festivals = getUpcomingFestivals(limit);
     res.json(festivals);
+  });
+
+  app.get("/api/festivals/all", (_req, res) => {
+    const all = getAllFestivals();
+    res.json(all);
   });
 
   app.get("/api/temple-events/upcoming", (req, res) => {
