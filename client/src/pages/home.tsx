@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { TodayPanchang } from "@/components/today-panchang";
+import { Sankalpam } from "@/components/sankalpam";
 import { CalendarGrid } from "@/components/calendar-grid";
 import { FestivalsList } from "@/components/festivals-list";
 import { TempleEvents } from "@/components/temple-events";
@@ -195,6 +196,8 @@ export default function Home() {
 
           <TabsContent value="calendar" className="space-y-6" data-testid="tabcontent-calendar">
             <TodayPanchang panchang={todayPanchang} isLoading={loadingToday} />
+
+            <Sankalpam panchang={todayPanchang} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">

@@ -43,12 +43,41 @@ export const teluguMonthsEnglish = [
 export const pakshas = ["Shukla", "Krishna"] as const;
 export const pakshasTelugu = ["శుక్ల పక్షం", "కృష్ణ పక్షం"] as const;
 
+// 60-year Telugu Samvatsara (Prabhavadi) cycle
+export const samvatsaras = [
+  "Prabhava", "Vibhava", "Shukla", "Pramoda", "Prajapati", "Angirasa",
+  "Shrimukha", "Bhava", "Yuva", "Dhata", "Ishvara", "Bahudhanya",
+  "Pramadhi", "Vikrama", "Vrisha", "Chitrabhanu", "Subhanu", "Tarana",
+  "Parthiva", "Vyaya", "Sarvajit", "Sarvadhari", "Virodhi", "Vikriti",
+  "Khara", "Nandana", "Vijaya", "Jaya", "Manmatha", "Durmukha",
+  "Hevilambi", "Vilambi", "Vikari", "Sharvari", "Plava", "Shubhakrit",
+  "Shobhakrit", "Krodhi", "Vishvavasu", "Parabhava", "Plavanga", "Kilaka",
+  "Saumya", "Sadharana", "Virodhakrit", "Paridhavi", "Pramadi", "Ananda",
+  "Rakshasa", "Nala", "Pingala", "Kalayukta", "Siddharthi", "Raudri",
+  "Durmati", "Dundubhi", "Rudhirodgari", "Raktakshi", "Krodhana", "Akshaya"
+] as const;
+
+export const samvatsarasTelugu = [
+  "ప్రభవ", "విభవ", "శుక్ల", "ప్రమోద", "ప్రజాపతి", "అంగీరస",
+  "శ్రీముఖ", "భావ", "యువ", "ధాత", "ఈశ్వర", "బహుధాన్య",
+  "ప్రమాది", "విక్రమ", "వృష", "చిత్రభాను", "సుభాను", "తారణ",
+  "పార్థివ", "వ్యయ", "సర్వజిత్", "సర్వధారి", "విరోధి", "వికృతి",
+  "ఖర", "నందన", "విజయ", "జయ", "మన్మథ", "దుర్ముఖి",
+  "హేవిళంబి", "విళంబి", "వికారి", "శార్వరి", "ప్లవ", "శుభకృత్",
+  "శోభకృత్", "క్రోధి", "విశ్వావసు", "పరాభవ", "ప్లవంగ", "కీలక",
+  "సౌమ్య", "సాధారణ", "విరోధకృత్", "పరిధావి", "ప్రమాది", "ఆనంద",
+  "రాక్షస", "నల", "పింగళ", "కాళయుక్త", "సిద్ధార్థి", "రౌద్రి",
+  "దుర్మతి", "దుందుభి", "రుధిరోద్గారి", "రక్తాక్షి", "క్రోధన", "అక్షయ"
+] as const;
+
 export interface PanchangData {
   date: string;
   teluguDate: number;
   teluguMonth: string;
   teluguMonthEnglish: string;
   teluguYear: number;
+  samvatsaraName: string;
+  samvatsaraNameTelugu: string;
   tithi: string;
   tithiTelugu: string;
   tithiNumber: number;

@@ -42,6 +42,16 @@ export const festivals: Festival[] = [
     relatedTithi: "Purnima",
   },
   {
+    id: "akshaya-tritiya-2026",
+    name: "Akshaya Tritiya",
+    nameTelugu: "అక్షయ తృతీయ",
+    date: "2026-04-19",
+    description: "One of the most auspicious days in the Hindu calendar. Any venture started or gold purchased on this day brings everlasting prosperity. Sacred to Lord Vishnu and Goddess Lakshmi.",
+    descriptionTelugu: "అత్యంత పవిత్ర దినం. ఈ రోజు ప్రారంభించిన పనులు, కొనుగోలు చేసిన బంగారం అక్షయంగా (నాశనం లేకుండా) వృద్ధి పొందుతాయి. విష్ణుమూర్తి, లక్ష్మీదేవి పూజ.",
+    type: "major",
+    relatedTithi: "Tritiya",
+  },
+  {
     id: "varalakshmi-vratam-2026",
     name: "Varalakshmi Vratam",
     nameTelugu: "వరలక్ష్మీ వ్రతం",

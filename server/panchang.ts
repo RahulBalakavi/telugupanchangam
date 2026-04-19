@@ -8,6 +8,8 @@ import {
   teluguMonthsEnglish,
   pakshas,
   pakshasTelugu,
+  samvatsaras,
+  samvatsarasTelugu,
 } from "@shared/schema";
 import * as Astronomy from "astronomy-engine";
 
@@ -345,6 +347,31 @@ export function getTeluguYear(date: Date): number {
   return year + 57;
 }
 
+// 60-year Samvatsara name. The cycle is anchored so that
+// Vishvavasu (index 38) starts at Ugadi 2025, Parabhava (39) at Ugadi 2026.
+// The transition happens at Ugadi (Chaitra Shukla Pratipada) — approx late March.
+// We approximate the rollover at March 20 of each Gregorian year.
+export function getSamvatsara(date: Date): { name: string; nameTelugu: string; index: number } {
+  const year = date.getFullYear();
+  const month = date.getMonth();
+  const day = date.getDate();
+  
+  // Before Ugadi (~March 20), we are in the previous Samvatsara
+  const isBeforeUgadi = month < 2 || (month === 2 && day < 20);
+  const samvatsaraYear = isBeforeUgadi ? year - 1 : year;
+  
+  // Anchor: 2025 (post-Ugadi) = Vishvavasu = index 38
+  // So index = (samvatsaraYear - 1987) mod 60
+  let index = (samvatsaraYear - 1987) % 60;
+  if (index < 0) index += 60;
+  
+  return {
+    name: samvatsaras[index],
+    nameTelugu: samvatsarasTelugu[index],
+    index,
+  };
+}
+
 // Get sunrise using astronomy-engine
 export function getSunrise(date: Date, lat: number = 17.385, lon: number = 78.4867, timezoneOffset: number = 5.5): string {
   try {
@@ -524,6 +551,7 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
   const nakshatra = getNakshatra(sunriseDate);
   const teluguMonth = getTeluguMonth(date);
   const teluguYear = getTeluguYear(date);
+  const samvatsara = getSamvatsara(date);
   const moonPhase = getMoonPhase(sunriseDate);
   const specialDay = getSpecialDayInfo(tithi);
   const tithiTimings = getTithiTimings(sunriseDate, timezone);
@@ -540,6 +568,8 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
     teluguMonth: teluguMonth.name,
     teluguMonthEnglish: teluguMonth.nameEnglish,
     teluguYear,
+    samvatsaraName: samvatsara.name,
+    samvatsaraNameTelugu: samvatsara.nameTelugu,
     tithi: tithi.name,
     tithiTelugu: tithi.nameTelugu,
     tithiNumber: tithi.number,

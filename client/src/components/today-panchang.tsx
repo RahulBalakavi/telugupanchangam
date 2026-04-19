@@ -61,6 +61,13 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
                 </Badge>
               )}
             </CardTitle>
+            {panchang.samvatsaraName && (
+              <p className="text-sm font-medium text-primary mt-1" data-testid="text-samvatsara">
+                {language === "telugu"
+                  ? `శ్రీ ${panchang.samvatsaraNameTelugu} నామ సంవత్సరం`
+                  : `Sri ${panchang.samvatsaraName} Nama Samvatsaram`}
+              </p>
+            )}
             <p className="text-muted-foreground mt-1" data-testid="text-english-date">
               {new Date(panchang.date + "T12:00:00").toLocaleDateString('en-US', {
                 weekday: 'long',
