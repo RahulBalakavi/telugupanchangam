@@ -63,8 +63,8 @@ const COUNTRIES: CountryInfo[] = [
     dwipaTelugu: "పుష్కర ద్వీపే",
     varsha: "Pashchima Varshe",
     varshaTelugu: "పశ్చిమ వర్షే",
-    khanda: "Bharata Khande",
-    khandaTelugu: "భరత ఖండే",
+    khanda: "Pashchima Khande",
+    khandaTelugu: "పశ్చిమ ఖండే",
   },
   {
     code: "AU",
@@ -85,8 +85,8 @@ const COUNTRIES: CountryInfo[] = [
     dwipaTelugu: "శాల్మలి ద్వీపే",
     varsha: "Pashchima Varshe",
     varshaTelugu: "పశ్చిమ వర్షే",
-    khanda: "Bharata Khande",
-    khandaTelugu: "భరత ఖండే",
+    khanda: "Pashchima Khande",
+    khandaTelugu: "పశ్చిమ ఖండే",
   },
   {
     code: "SG",
