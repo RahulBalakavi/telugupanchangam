@@ -75,6 +75,7 @@ export interface PanchangData {
   teluguDate: number;
   teluguMonth: string;
   teluguMonthEnglish: string;
+  isAdhikaMasa: boolean;
   teluguYear: number;
   samvatsaraName: string;
   samvatsaraNameTelugu: string;

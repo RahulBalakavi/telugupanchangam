@@ -294,44 +294,58 @@ function findNextNewMoon(date: Date): Date {
   return newMoon ? newMoon.date : date;
 }
 
-// Telugu month is determined by the lunar month
-// Reference: Chaitra is the first month, starting around March/April new moon
-export function getTeluguMonth(date: Date): { name: string; nameEnglish: string; index: number } {
-  // For Telugu calendar, the month starts after new moon (Amanta/Amavasya system)
-  // Find the new moon that starts the current lunar month
+// Get the Sun's sidereal (Nirayana) rashi (zodiac sign) index.
+// 0 = Mesha (Aries), 1 = Vrishabha, ... 11 = Meena (Pisces).
+function getSunSiderealRashi(date: Date): number {
+  const astroDate = Astronomy.MakeTime(date);
+  const sun = Astronomy.SunPosition(astroDate); // tropical ecliptic longitude (.elon)
+  const ayanamsa = getAyanamsa(date);
+  let sidereal = sun.elon - ayanamsa;
+  while (sidereal < 0) sidereal += 360;
+  while (sidereal >= 360) sidereal -= 360;
+  return Math.floor(sidereal / 30);
+}
+
+// Telugu month is determined by the lunar month (Amanta system - month ends at Amavasya).
+//
+// Naming rule: a lunar month (new moon -> next new moon) is named after the rashi the
+// Sun enters (sankranti) during that month. Equivalently, monthIndex = (rashiAtStart + 1) % 12,
+// where Chaitra (0) corresponds to the Mesha sankranti.
+//
+// Adhika masa (intercalary leap month): if a lunar month contains NO sankranti (the Sun
+// stays in the same rashi for the whole month), it is an "Adhika" month. It shares the name
+// of the following regular (Nija) month. This is detected when the Sun's rashi at the start
+// equals its rashi at the end of the lunar month.
+export function getTeluguMonth(date: Date): { name: string; nameEnglish: string; index: number; isAdhika: boolean } {
   const prevNewMoon = findPreviousNewMoon(date);
   const nextNewMoon = findNextNewMoon(date);
-  
-  // If we're within 12 hours of a new moon, use the upcoming month
-  // This handles edge cases like Ugadi morning when new moon is same day
+
+  // If we're within 12 hours of the upcoming new moon, treat as the next lunar month.
+  // This handles edge cases like Ugadi morning when new moon is the same day.
   const hoursToNextNewMoon = (nextNewMoon.getTime() - date.getTime()) / (1000 * 60 * 60);
-  const monthStartNewMoon = hoursToNextNewMoon < 12 ? nextNewMoon : prevNewMoon;
-  
-  // Find Chaitra new moon - the new moon in March/April closest to spring equinox
-  // Chaitra starts with the new moon that falls between mid-March and mid-April
-  const year = date.getFullYear();
-  
-  // Search for the new moon closest to March 21 (spring equinox)
-  const springEquinox = new Date(Date.UTC(year, 2, 21)); // March 21
-  const chaitraNewMoon = Astronomy.SearchMoonPhase(0, Astronomy.MakeTime(springEquinox), -15);
-  
-  if (!chaitraNewMoon) {
-    return { name: teluguMonths[0], nameEnglish: teluguMonthsEnglish[0], index: 0 };
+
+  let newMoonStart: Date;
+  let newMoonEnd: Date;
+  if (hoursToNextNewMoon < 12) {
+    newMoonStart = nextNewMoon;
+    newMoonEnd = findNextNewMoon(new Date(nextNewMoon.getTime() + 24 * 60 * 60 * 1000));
+  } else {
+    newMoonStart = prevNewMoon;
+    newMoonEnd = nextNewMoon;
   }
-  
-  // Calculate months since Chaitra new moon
-  const msDiff = monthStartNewMoon.getTime() - chaitraNewMoon.date.getTime();
-  const daysDiff = msDiff / (24 * 60 * 60 * 1000);
-  let monthsSinceChaitra = Math.round(daysDiff / 29.53);
-  
-  // Normalize to 0-11 range
-  while (monthsSinceChaitra < 0) monthsSinceChaitra += 12;
-  monthsSinceChaitra = monthsSinceChaitra % 12;
-  
+
+  // Sample the Sun's rashi just inside the lunar month boundaries to avoid edge ambiguity.
+  const rashiAtStart = getSunSiderealRashi(new Date(newMoonStart.getTime() + 60 * 60 * 1000));
+  const rashiAtEnd = getSunSiderealRashi(new Date(newMoonEnd.getTime() - 60 * 60 * 1000));
+
+  const monthIndex = (rashiAtStart + 1) % 12;
+  const isAdhika = rashiAtStart === rashiAtEnd; // no sankranti during the month
+
   return {
-    name: teluguMonths[monthsSinceChaitra],
-    nameEnglish: teluguMonthsEnglish[monthsSinceChaitra],
-    index: monthsSinceChaitra,
+    name: teluguMonths[monthIndex],
+    nameEnglish: teluguMonthsEnglish[monthIndex],
+    index: monthIndex,
+    isAdhika,
   };
 }
 
@@ -567,6 +581,7 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
     teluguDate,
     teluguMonth: teluguMonth.name,
     teluguMonthEnglish: teluguMonth.nameEnglish,
+    isAdhikaMasa: teluguMonth.isAdhika,
     teluguYear,
     samvatsaraName: samvatsara.name,
     samvatsaraNameTelugu: samvatsara.nameTelugu,

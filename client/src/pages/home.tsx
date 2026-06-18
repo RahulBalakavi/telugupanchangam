@@ -87,10 +87,17 @@ export default function Home() {
 
   const calendarDays = useMemo(() => {
     if (!monthData?.days) return [];
-    return monthData.days.map((day) => ({
-      ...day,
-      date: new Date(typeof day.date === 'string' && !day.date.includes('T') ? day.date + "T12:00:00" : day.date),
-    }));
+    return monthData.days.map((day) => {
+      const rawDate = day.date as unknown;
+      const normalized =
+        typeof rawDate === "string" && !rawDate.includes("T")
+          ? rawDate + "T12:00:00"
+          : rawDate as string | Date;
+      return {
+        ...day,
+        date: new Date(normalized),
+      };
+    });
   }, [monthData]);
 
   const handleDayClick = (day: CalendarDay) => {

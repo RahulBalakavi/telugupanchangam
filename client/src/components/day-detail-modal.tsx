@@ -43,8 +43,8 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
             {panchang && (
               <span>
                 {language === "telugu" 
-                  ? `${panchang.teluguMonth} ${panchang.teluguDate}, ${panchang.teluguYear}`
-                  : `${panchang.teluguMonthEnglish} ${panchang.teluguDate}, ${panchang.teluguYear}`
+                  ? `${panchang.isAdhikaMasa ? "అధిక " : ""}${panchang.teluguMonth} ${panchang.teluguDate}, ${panchang.teluguYear}`
+                  : `${panchang.isAdhikaMasa ? "Adhika " : ""}${panchang.teluguMonthEnglish} ${panchang.teluguDate}, ${panchang.teluguYear}`
                 }
               </span>
             )}
@@ -132,6 +132,7 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                   <div>
                     <p className="text-xs text-muted-foreground">{t("తెలుగు మాసం", "Telugu Month")}</p>
                     <p className="font-medium text-sm" data-testid="text-modal-month">
+                      {panchang.isAdhikaMasa && (language === "telugu" ? "అధిక " : "Adhika ")}
                       {language === "telugu" ? panchang.teluguMonth : panchang.teluguMonthEnglish}
                     </p>
                   </div>

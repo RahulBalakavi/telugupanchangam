@@ -1,0 +1,1 @@
+- [Telugu lunar month & adhika masa](telugu-lunar-month.md) — month name must derive from sankranti, not a fixed month-count offset, or adhika masa shifts every later month forward by one.

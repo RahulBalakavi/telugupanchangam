@@ -235,7 +235,10 @@ export function Sankalpam({ panchang }: SankalpamProps) {
               <span className="font-semibold">{ritu.nameTelugu}</span> ఋతౌ,
             </p>
             <p>
-              <span className="font-semibold">{panchang.teluguMonth}</span> మాసే,{" "}
+              <span className="font-semibold">
+                {panchang.isAdhikaMasa ? "అధిక " : ""}{panchang.teluguMonth}
+              </span>{" "}
+              మాసే,{" "}
               <span className="font-semibold">{panchang.pakshaTelugu}</span>,{" "}
               <span className="font-semibold">{panchang.tithiTelugu}</span> తిథౌ,{" "}
               <span className="font-semibold">{vasara.nameTelugu}</span> వాసర యుక్తాయాం,{" "}
@@ -266,7 +269,10 @@ export function Sankalpam({ panchang }: SankalpamProps) {
               <span className="font-semibold">{ritu.name}</span> Ritau,
             </p>
             <p>
-              <span className="font-semibold">{panchang.teluguMonthEnglish}</span> Mase,{" "}
+              <span className="font-semibold">
+                {panchang.isAdhikaMasa ? "Adhika " : ""}{panchang.teluguMonthEnglish}
+              </span>{" "}
+              Mase,{" "}
               <span className="font-semibold">{panchang.paksha} Pakshe</span>,{" "}
               <span className="font-semibold">{panchang.tithi}</span> Tithau,{" "}
               <span className="font-semibold">{vasara.name}</span> Vasara Yuktayam,{" "}

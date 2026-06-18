@@ -154,6 +154,7 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
               <div>
                 <p className="text-sm text-muted-foreground">{t("తెలుగు మాసం", "Telugu Month")}</p>
                 <p className="font-medium" data-testid="text-telugu-month">
+                  {panchang.isAdhikaMasa && (language === "telugu" ? "అధిక " : "Adhika ")}
                   {language === "telugu" ? panchang.teluguMonth : panchang.teluguMonthEnglish}
                 </p>
               </div>
