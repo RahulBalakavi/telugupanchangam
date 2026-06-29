@@ -18,12 +18,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
+import { useTheme } from "@/lib/theme-provider";
 import type { CalendarDay, PanchangData, Festival, TempleEvent, NotificationPreference } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Home() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { setDaylight } = useTheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -126,6 +128,14 @@ export default function Home() {
     setTimeout(() => setHighlightedDate(null), 4000);
   }, []);
 
+  // Feed the day's real sunrise/sunset into the theme so auto mode flips at
+  // the actual local horizon rather than a fixed 6am–6pm window.
+  useEffect(() => {
+    if (todayPanchang?.sunrise && todayPanchang?.sunset && todayPanchang?.timezone) {
+      setDaylight(todayPanchang.sunrise, todayPanchang.sunset, todayPanchang.timezone);
+    }
+  }, [todayPanchang, setDaylight]);
+
   useEffect(() => {
     if (highlightedDate && calendarDays.length > 0) {
       const target = new Date(highlightedDate + "T12:00:00");
@@ -144,13 +154,22 @@ export default function Home() {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🙏</span>
+            <span
+              className="flex-none grid place-items-center h-11 w-11 rounded-full text-xl border"
+              style={{
+                borderColor: "hsl(var(--gold-deep))",
+                background: "radial-gradient(circle at 30% 30%, hsl(var(--saffron) / 0.22), transparent 70%)",
+                boxShadow: "0 4px 22px hsl(var(--gold) / 0.22)",
+              }}
+            >
+              🪔
+            </span>
             <div>
-              <h1 className="text-xl md:text-2xl font-serif font-semibold text-foreground" data-testid="text-app-title">
+              <h1 className="text-xl md:text-2xl font-telugu font-semibold text-foreground leading-none" data-testid="text-app-title">
                 {t("తెలుగు పంచాంగం", "Telugu Panchangam")}
               </h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">
-                {t("Telugu Panchangam", "Hindu Calendar")}
+              <p className="cel-eyebrow text-[0.6rem] mt-1.5 hidden sm:block">
+                Celestial Almanac
               </p>
             </div>
           </div>

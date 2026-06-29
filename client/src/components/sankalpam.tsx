@@ -182,8 +182,8 @@ export function Sankalpam({ panchang }: SankalpamProps) {
       <CardHeader>
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <CardTitle className="flex items-center gap-2">
-              <ScrollText className="h-5 w-5 text-primary" />
+            <CardTitle className="cel-panel-title flex items-center gap-2">
+              <ScrollText className="h-4 w-4 text-primary" />
               {t("సంకల్పం", "Sankalpam")}
             </CardTitle>
             <CardDescription>

@@ -69,8 +69,8 @@ export function FestivalsList({ festivals, title, isLoading, showPast, onFestiva
   return (
     <Card data-testid="card-festivals">
       <CardHeader className="pb-3">
-        <CardTitle className="text-lg font-serif flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-accent" />
+        <CardTitle className="cel-panel-title flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-accent" />
           {displayTitle}
         </CardTitle>
       </CardHeader>

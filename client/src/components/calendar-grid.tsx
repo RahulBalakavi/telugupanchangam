@@ -74,7 +74,7 @@ export function CalendarGrid({
   return (
     <Card data-testid="card-calendar">
       <CardHeader className="flex flex-row items-center justify-between gap-2 pb-4 flex-wrap">
-        <CardTitle className="text-xl font-serif" data-testid="text-month-year">
+        <CardTitle className="font-display text-lg tracking-[0.12em] uppercase" data-testid="text-month-year">
           {monthYear}
         </CardTitle>
         <div className="flex items-center gap-2">
@@ -137,39 +137,43 @@ export function CalendarGrid({
                 key={index}
                 onClick={() => onDayClick(day)}
                 className={cn(
-                  "relative p-1 md:p-2 min-h-[60px] md:min-h-[80px] rounded-md transition-all",
-                  "hover-elevate active-elevate-2 text-left",
+                  "relative p-1.5 md:p-2 min-h-[60px] md:min-h-[80px] rounded-lg transition-all border border-transparent text-left",
+                  day.isToday
+                    ? "bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-md"
+                    : "hover-elevate active-elevate-2 hover:border-primary/40",
                   !day.isCurrentMonth && "opacity-40",
-                  day.isToday && "ring-2 ring-primary ring-offset-1",
-                  isSelected && !isHighlighted && "bg-primary/10",
+                  isSelected && !isHighlighted && !day.isToday && "bg-primary/10 border-primary/30",
                   isHighlighted && "ring-2 ring-accent ring-offset-2 bg-accent/15 animate-pulse",
-                  isSunday && "text-destructive"
+                  isSunday && !day.isToday && "text-destructive"
                 )}
                 data-testid={`button-day-${dayDateStr || index}`}
               >
                 <div className="flex flex-col h-full">
                   <div className="flex items-start justify-between gap-1">
-                    <span className={cn(
-                      "text-sm md:text-base font-medium",
-                      day.isToday && "bg-primary text-primary-foreground rounded-full w-6 h-6 md:w-7 md:h-7 flex items-center justify-center"
-                    )}>
+                    <span className={cn("text-sm md:text-base font-semibold")}>
                       {day.date.getDate()}
                     </span>
                     {day.panchang && (
-                      <span className="text-[10px] md:text-xs text-muted-foreground">
+                      <span className={cn(
+                        "text-[10px] md:text-xs font-telugu",
+                        day.isToday ? "text-primary-foreground/90" : "text-muted-foreground"
+                      )}>
                         {day.panchang.teluguDate}
                       </span>
                     )}
                   </div>
-                  
+
                   {day.panchang && (
                     <div className="mt-auto pt-1 space-y-0.5">
-                      <p className="text-[9px] md:text-[10px] text-muted-foreground truncate">
+                      <p className={cn(
+                        "text-[9px] md:text-[10px] font-telugu truncate",
+                        day.isToday ? "text-primary-foreground/90" : "text-muted-foreground"
+                      )}>
                         {day.panchang.tithiTelugu}
                       </p>
-                      {day.panchang.isSpecialDay && (
-                        <Badge 
-                          variant="secondary" 
+                      {day.panchang.isSpecialDay && !day.isToday && (
+                        <Badge
+                          variant="secondary"
                           className="text-[8px] md:text-[9px] px-1 py-0 h-auto"
                         >
                           {day.panchang.specialDayInfo?.split(' ')[0]}
@@ -177,10 +181,13 @@ export function CalendarGrid({
                       )}
                     </div>
                   )}
-                  
+
                   {day.festivals.length > 0 && (
-                    <div className="absolute bottom-1 right-1">
-                      <div className="w-2 h-2 rounded-full bg-accent" />
+                    <div className="absolute bottom-1.5 right-1.5">
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full",
+                        day.isToday ? "bg-primary-foreground" : "bg-primary shadow-[0_0_6px_hsl(var(--saffron))]"
+                      )} />
                     </div>
                   )}
                 </div>

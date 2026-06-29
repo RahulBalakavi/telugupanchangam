@@ -102,8 +102,8 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-md bg-amber-500/10">
-                    <Sunrise className="h-4 w-4 text-amber-600" />
+                  <div className="p-2 rounded-md bg-primary/10">
+                    <Sunrise className="h-4 w-4 text-primary" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{t("సూర్యోదయం", "Sunrise")}</p>
@@ -114,8 +114,8 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-md bg-orange-500/10">
-                    <Sunset className="h-4 w-4 text-orange-600" />
+                  <div className="p-2 rounded-md bg-accent/20">
+                    <Sunset className="h-4 w-4 text-accent-foreground" />
                   </div>
                   <div>
                     <p className="text-xs text-muted-foreground">{t("సూర్యాస్తమయం", "Sunset")}</p>
