@@ -106,8 +106,8 @@ export default function Landing() {
               <Card className="hover-elevate">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-lg bg-amber-500/10">
-                      <MapPin className="h-6 w-6 text-amber-600" />
+                    <div className="p-3 rounded-lg bg-primary/10">
+                      <MapPin className="h-6 w-6 text-primary" />
                     </div>
                     <div>
                       <h4 className="font-semibold mb-2">Temple Events</h4>
@@ -122,8 +122,8 @@ export default function Landing() {
               <Card className="hover-elevate">
                 <CardContent className="pt-6">
                   <div className="flex items-start gap-4">
-                    <div className="p-3 rounded-lg bg-orange-500/10">
-                      <Bell className="h-6 w-6 text-orange-600" />
+                    <div className="p-3 rounded-lg bg-accent/20">
+                      <Bell className="h-6 w-6 text-accent-foreground" />
                     </div>
                     <div>
                       <h4 className="font-semibold mb-2">Smart Notifications</h4>

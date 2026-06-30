@@ -2,7 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
-/* LIGHT MODE - Traditional Hindu/Telugu aesthetic with saffron and gold */
+/* =========================================================================
+   CELESTIAL ALMANAC — DAY (light) theme
+   A warm dawn-parchment sky with gold-leaf accents and saffron highlights.
+   The day/night themes share one design language; only the palette shifts.
+   ========================================================================= */
 :root {
   --button-outline: rgba(0,0,0, .10);
   --badge-outline: rgba(0,0,0, .05);
@@ -12,72 +16,89 @@
 
   /* Backgrounds applied on top of other backgrounds when hovered/active */
   --elevate-1: rgba(0,0,0, .03);
-  --elevate-2: rgba(0,0,0, .08);
+  --elevate-2: rgba(0,0,0, .07);
 
-  --background: 45 30% 98%;
+  --background: 41 50% 93%;
 
-  --foreground: 20 25% 15%;
+  --foreground: 33 37% 13%;
 
-  --border: 35 20% 88%;
+  --border: 38 35% 84%;
 
-  --card: 40 35% 99%;
+  --card: 42 70% 98%;
 
-  --card-foreground: 20 25% 15%;
+  --card-foreground: 33 37% 13%;
 
-  --card-border: 35 25% 90%;
+  --card-border: 38 35% 86%;
 
-  --sidebar: 30 40% 96%;
+  --sidebar: 40 45% 95%;
 
-  --sidebar-foreground: 20 25% 20%;
+  --sidebar-foreground: 33 35% 18%;
 
-  --sidebar-border: 35 30% 88%;
+  --sidebar-border: 38 35% 86%;
 
-  --sidebar-primary: 25 85% 50%;
+  --sidebar-primary: 25 77% 48%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 35 50% 92%;
+  --sidebar-accent: 40 55% 90%;
 
-  --sidebar-accent-foreground: 20 30% 25%;
+  --sidebar-accent-foreground: 33 35% 22%;
 
-  --sidebar-ring: 25 85% 50%;
+  --sidebar-ring: 25 77% 48%;
 
-  --popover: 40 35% 99%;
+  --popover: 42 70% 98%;
 
-  --popover-foreground: 20 25% 15%;
+  --popover-foreground: 33 37% 13%;
 
-  --popover-border: 35 25% 88%;
+  --popover-border: 38 35% 86%;
 
-  --primary: 25 90% 48%;
+  --primary: 25 77% 48%;
 
   --primary-foreground: 0 0% 100%;
 
-  --secondary: 35 40% 94%;
+  --secondary: 40 40% 90%;
 
-  --secondary-foreground: 20 25% 25%;
+  --secondary-foreground: 33 35% 22%;
 
-  --muted: 40 20% 94%;
+  --muted: 40 32% 90%;
 
-  --muted-foreground: 20 15% 45%;
+  --muted-foreground: 33 18% 42%;
 
-  --accent: 45 70% 55%;
+  --accent: 38 64% 50%;
 
-  --accent-foreground: 20 30% 15%;
+  --accent-foreground: 33 40% 14%;
 
-  --destructive: 0 72% 51%;
+  --destructive: 0 68% 48%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 35 25% 85%;
-  --ring: 25 90% 48%;
-  --chart-1: 25 90% 48%;
-  --chart-2: 45 70% 55%;
-  --chart-3: 120 40% 45%;
-  --chart-4: 200 60% 50%;
-  --chart-5: 280 50% 55%;
+  --input: 38 30% 82%;
+  --ring: 25 77% 48%;
+  --chart-1: 25 77% 48%;
+  --chart-2: 38 64% 50%;
+  --chart-3: 140 35% 40%;
+  --chart-4: 205 55% 48%;
+  --chart-5: 280 45% 52%;
 
-  --font-sans: 'Poppins', 'Inter', sans-serif;
-  --font-serif: 'Lora', Georgia, serif;
+  /* Celestial Almanac accent tokens (used by .cel-* helpers) */
+  --gold: 38 64% 46%;
+  --gold-deep: 35 70% 36%;
+  --saffron: 25 80% 50%;
+  --cel-line: 38 50% 78%;
+  --cel-sky-1: rgba(217,106,28,.14);   /* dawn glow, top-right */
+  --cel-sky-2: rgba(120,170,220,.16);  /* morning blue, top-left */
+  --cel-fleck: rgba(200,140,40,.16);
+  --cel-hero-from: 42 80% 99%;
+  --cel-hero-to: 40 60% 92%;
+  --moon-core: #fffdf3;
+  --moon-mid: #ffe7b0;
+  --moon-edge: #e0a73f;
+  --moon-glow: rgba(217,150,40,.42);
+
+  --font-sans: 'Mulish', 'Inter', system-ui, sans-serif;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
+  --font-display: 'Fraunces', 'Cormorant Garamond', Georgia, serif;
+  --font-telugu: 'Noto Serif Telugu', 'Cormorant Garamond', serif;
   --font-mono: 'Fira Code', Menlo, monospace;
   --radius: .5rem; /* 8px */
   --shadow-2xs: 0px 1px 2px 0px hsl(25 30% 30% / 0.04);
@@ -122,6 +143,10 @@
   --destructive-border: hsl(from hsl(var(--destructive)) h s calc(l + var(--opaque-button-border-intensity)) / alpha);
 }
 
+/* =========================================================================
+   CELESTIAL ALMANAC — NIGHT (dark) theme
+   A midnight-indigo starfield with luminous gold and saffron.
+   ========================================================================= */
 .dark {
   --button-outline: rgba(255,255,255, .10);
   --badge-outline: rgba(255,255,255, .05);
@@ -132,67 +157,82 @@
   --elevate-1: rgba(255,255,255, .04);
   --elevate-2: rgba(255,255,255, .09);
 
-  --background: 20 20% 8%;
+  --background: 228 39% 7%;
 
-  --foreground: 40 20% 92%;
+  --foreground: 44 40% 88%;
 
-  --border: 25 15% 20%;
+  --border: 226 20% 18%;
 
-  --card: 22 18% 12%;
+  --card: 226 30% 11%;
 
-  --card-foreground: 40 20% 92%;
+  --card-foreground: 44 40% 88%;
 
-  --card-border: 25 15% 22%;
+  --card-border: 224 22% 20%;
 
-  --sidebar: 18 22% 10%;
+  --sidebar: 228 34% 9%;
 
-  --sidebar-foreground: 40 15% 88%;
+  --sidebar-foreground: 44 30% 84%;
 
-  --sidebar-border: 25 15% 18%;
+  --sidebar-border: 224 22% 18%;
 
-  --sidebar-primary: 25 85% 55%;
+  --sidebar-primary: 25 82% 58%;
 
   --sidebar-primary-foreground: 0 0% 100%;
 
-  --sidebar-accent: 25 25% 18%;
+  --sidebar-accent: 226 24% 16%;
 
-  --sidebar-accent-foreground: 40 20% 90%;
+  --sidebar-accent-foreground: 44 30% 88%;
 
-  --sidebar-ring: 25 85% 55%;
+  --sidebar-ring: 25 82% 58%;
 
-  --popover: 22 18% 12%;
+  --popover: 226 30% 11%;
 
-  --popover-foreground: 40 20% 92%;
+  --popover-foreground: 44 40% 88%;
 
-  --popover-border: 25 15% 22%;
+  --popover-border: 224 22% 20%;
 
-  --primary: 25 85% 55%;
+  --primary: 25 82% 58%;
 
-  --primary-foreground: 0 0% 100%;
+  --primary-foreground: 228 39% 8%;
 
-  --secondary: 25 20% 18%;
+  --secondary: 226 22% 16%;
 
-  --secondary-foreground: 40 15% 88%;
+  --secondary-foreground: 44 30% 86%;
 
-  --muted: 20 15% 16%;
+  --muted: 225 20% 14%;
 
-  --muted-foreground: 35 10% 55%;
+  --muted-foreground: 42 14% 60%;
 
-  --accent: 45 60% 50%;
+  --accent: 39 68% 64%;
 
-  --accent-foreground: 20 30% 10%;
+  --accent-foreground: 228 39% 9%;
 
-  --destructive: 0 65% 50%;
+  --destructive: 0 62% 52%;
 
   --destructive-foreground: 0 0% 100%;
 
-  --input: 25 15% 25%;
-  --ring: 25 85% 55%;
-  --chart-1: 25 85% 55%;
-  --chart-2: 45 60% 50%;
-  --chart-3: 140 45% 45%;
-  --chart-4: 200 55% 55%;
-  --chart-5: 280 45% 60%;
+  --input: 224 20% 22%;
+  --ring: 25 82% 58%;
+  --chart-1: 25 82% 58%;
+  --chart-2: 39 68% 64%;
+  --chart-3: 140 45% 50%;
+  --chart-4: 200 55% 58%;
+  --chart-5: 280 45% 64%;
+
+  /* Celestial Almanac accent tokens (night) */
+  --gold: 39 70% 69%;
+  --gold-deep: 38 55% 52%;
+  --saffron: 21 79% 57%;
+  --cel-line: 39 60% 70%;
+  --cel-sky-1: rgba(232,132,58,.10);   /* warm nebula, top-right */
+  --cel-sky-2: rgba(120,140,255,.08);  /* cool nebula, top-left */
+  --cel-fleck: rgba(255,255,255,.42);
+  --cel-hero-from: 226 30% 13%;
+  --cel-hero-to: 228 36% 9%;
+  --moon-core: #fdf6e3;
+  --moon-mid: #d8cca6;
+  --moon-edge: #8d8054;
+  --moon-glow: rgba(232,194,122,.35);
 
   --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.15);
   --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.20);
@@ -212,6 +252,118 @@
 
   body {
     @apply font-sans antialiased bg-background text-foreground;
+    position: relative;
+    background-image:
+      radial-gradient(1100px 640px at 86% -12%, var(--cel-sky-1), transparent 60%),
+      radial-gradient(900px 600px at 6% -6%, var(--cel-sky-2), transparent 55%);
+    background-attachment: fixed;
+  }
+
+  /* Celestial atmosphere: a faint starfield (night) / sun-flecks (day) */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: .7;
+    background-image:
+      radial-gradient(1.5px 1.5px at 20% 30%, var(--cel-fleck), transparent),
+      radial-gradient(1px 1px at 70% 18%, var(--cel-fleck), transparent),
+      radial-gradient(1.5px 1.5px at 42% 68%, var(--cel-fleck), transparent),
+      radial-gradient(1px 1px at 85% 58%, var(--cel-fleck), transparent),
+      radial-gradient(1px 1px at 55% 44%, var(--cel-fleck), transparent),
+      radial-gradient(1.2px 1.2px at 30% 84%, var(--cel-fleck), transparent),
+      radial-gradient(1px 1px at 12% 56%, var(--cel-fleck), transparent),
+      radial-gradient(1.3px 1.3px at 92% 32%, var(--cel-fleck), transparent);
+  }
+
+  /* App chrome sits above the atmosphere */
+  #root { position: relative; z-index: 1; }
+}
+
+@layer components {
+  /* ---- Celestial Almanac type helpers ---- */
+  .font-display { font-family: var(--font-display); }
+  .font-telugu { font-family: var(--font-telugu); }
+
+  .cel-eyebrow {
+    font-family: var(--font-display);
+    font-size: .72rem;
+    letter-spacing: .34em;
+    text-transform: uppercase;
+    color: hsl(var(--gold-deep));
+  }
+
+  /* Big hero date — luminous gradient serif */
+  .cel-headline {
+    font-family: var(--font-telugu);
+    font-weight: 600;
+    line-height: 1.06;
+    background: linear-gradient(90deg, hsl(var(--saffron)), hsl(var(--gold)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  /* The hero "almanac plate" surface */
+  .cel-hero {
+    background: linear-gradient(160deg, hsl(var(--cel-hero-from)), hsl(var(--cel-hero-to)));
+    border: 1px solid hsl(var(--cel-line) / .55);
+    box-shadow: 0 24px 60px -38px hsl(var(--gold-deep) / .6);
+  }
+
+  /* The four-up metric strip */
+  .cel-strip {
+    border: 1px solid hsl(var(--cel-line) / .5);
+    background: hsl(var(--cel-line) / .5);
+  }
+  .cel-strip-cell { background: hsl(var(--card)); }
+  .cel-metric-k {
+    font-family: var(--font-display);
+    font-size: .7rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: hsl(var(--gold-deep));
+  }
+
+  /* Hairline divider used in headings */
+  .cel-rule {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, hsl(var(--cel-line)), transparent);
+  }
+
+  /* The glowing celestial body wrapper around the SVG moon */
+  .cel-moon {
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 32%, var(--moon-core), var(--moon-mid) 58%, var(--moon-edge));
+    box-shadow:
+      0 0 60px var(--moon-glow),
+      0 0 0 9px hsl(var(--gold) / .12),
+      inset -16px -10px 36px rgba(40,24,8,.45);
+    position: relative;
+  }
+  .cel-moon::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 72% 42%, transparent 44%, rgba(30,18,4,.30) 80%);
+  }
+
+  /* Soft luminous halo placed behind the data-accurate moon-phase SVG */
+  .cel-halo {
+    border-radius: 50%;
+    box-shadow: 0 0 55px var(--moon-glow), 0 0 0 8px hsl(var(--gold) / .10);
+  }
+
+  /* Section heading used on calendar / festivals panels */
+  .cel-panel-title {
+    font-family: var(--font-display);
+    font-size: .82rem;
+    letter-spacing: .24em;
+    text-transform: uppercase;
+    color: hsl(var(--gold-deep));
   }
 }
 

@@ -18,12 +18,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
+import { useTheme } from "@/lib/theme-provider";
 import type { CalendarDay, PanchangData, Festival, TempleEvent, NotificationPreference } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Home() {
   const { user } = useAuth();
   const { t } = useLanguage();
+  const { setDaylight } = useTheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<CalendarDay | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -126,6 +128,14 @@ export default function Home() {
     setTimeout(() => setHighlightedDate(null), 4000);
   }, []);
 
+  // Feed the day's real sunrise/sunset into the theme so auto mode flips at
+  // the actual local horizon rather than a fixed 6am–6pm window.
+  useEffect(() => {
+    if (todayPanchang?.sunrise && todayPanchang?.sunset && todayPanchang?.timezone) {
+      setDaylight(todayPanchang.sunrise, todayPanchang.sunset, todayPanchang.timezone);
+    }
+  }, [todayPanchang, setDaylight]);
+
   useEffect(() => {
     if (highlightedDate && calendarDays.length > 0) {
       const target = new Date(highlightedDate + "T12:00:00");
@@ -144,13 +154,22 @@ export default function Home() {
       <header className="sticky top-0 z-50 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <span className="text-2xl">🙏</span>
+            <span
+              className="flex-none grid place-items-center h-11 w-11 rounded-full text-xl border"
+              style={{
+                borderColor: "hsl(var(--gold-deep))",
+                background: "radial-gradient(circle at 30% 30%, hsl(var(--saffron) / 0.22), transparent 70%)",
+                boxShadow: "0 4px 22px hsl(var(--gold) / 0.22)",
+              }}
+            >
+              🪔
+            </span>
             <div>
-              <h1 className="text-xl md:text-2xl font-serif font-semibold text-foreground" data-testid="text-app-title">
+              <h1 className="text-xl md:text-2xl font-telugu font-semibold text-foreground leading-none" data-testid="text-app-title">
                 {t("తెలుగు పంచాంగం", "Telugu Panchangam")}
               </h1>
-              <p className="text-xs text-muted-foreground hidden sm:block">
-                {t("Telugu Panchangam", "Hindu Calendar")}
+              <p className="cel-eyebrow text-[0.6rem] mt-1.5 hidden sm:block">
+                Celestial Almanac
               </p>
             </div>
           </div>
@@ -183,28 +202,42 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 pt-6 pb-28 md:pb-6">
         <InstallBanner />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3" data-testid="tabs-main">
-            <TabsTrigger value="calendar" className="gap-2" data-testid="tab-calendar">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("క్యాలెండర్", "Calendar")}</span>
+          {/* Desktop: centered top tabs. Mobile: fixed bottom icon nav. */}
+          <TabsList
+            className="fixed inset-x-0 bottom-0 z-50 grid h-16 grid-cols-3 rounded-none border-t bg-background/95 p-0 backdrop-blur pb-[env(safe-area-inset-bottom)] md:static md:mx-auto md:h-10 md:w-full md:max-w-md md:rounded-md md:border-0 md:bg-muted md:p-1"
+            data-testid="tabs-main"
+          >
+            <TabsTrigger
+              value="calendar"
+              className="h-full flex-col gap-1 rounded-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none md:h-auto md:flex-row md:gap-2 md:rounded-sm md:data-[state=active]:bg-background md:data-[state=active]:text-foreground md:data-[state=active]:shadow-sm"
+              data-testid="tab-calendar"
+            >
+              <Calendar className="h-5 w-5 md:h-4 md:w-4" />
+              <span className="text-[10px] leading-none md:text-sm">{t("క్యాలెండర్", "Calendar")}</span>
             </TabsTrigger>
-            <TabsTrigger value="events" className="gap-2" data-testid="tab-events">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("పండుగలు", "Events")}</span>
+            <TabsTrigger
+              value="events"
+              className="h-full flex-col gap-1 rounded-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none md:h-auto md:flex-row md:gap-2 md:rounded-sm md:data-[state=active]:bg-background md:data-[state=active]:text-foreground md:data-[state=active]:shadow-sm"
+              data-testid="tab-events"
+            >
+              <Sparkles className="h-5 w-5 md:h-4 md:w-4" />
+              <span className="text-[10px] leading-none md:text-sm">{t("పండుగలు", "Events")}</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2" data-testid="tab-settings">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("సెట్టింగ్స్", "Settings")}</span>
+            <TabsTrigger
+              value="settings"
+              className="h-full flex-col gap-1 rounded-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none md:h-auto md:flex-row md:gap-2 md:rounded-sm md:data-[state=active]:bg-background md:data-[state=active]:text-foreground md:data-[state=active]:shadow-sm"
+              data-testid="tab-settings"
+            >
+              <Settings className="h-5 w-5 md:h-4 md:w-4" />
+              <span className="text-[10px] leading-none md:text-sm">{t("సెట్టింగ్స్", "Settings")}</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendar" className="space-y-6" data-testid="tabcontent-calendar">
             <TodayPanchang panchang={todayPanchang} isLoading={loadingToday} />
-
-            <Sankalpam panchang={todayPanchang} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
@@ -227,6 +260,8 @@ export default function Home() {
                 />
               </div>
             </div>
+
+            <Sankalpam panchang={todayPanchang} />
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6" data-testid="tabcontent-events">

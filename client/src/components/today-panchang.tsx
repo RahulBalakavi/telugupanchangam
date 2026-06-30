@@ -1,7 +1,6 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MoonPhase } from "./moon-phase";
-import { Sunrise, Sunset, Star, Calendar, Moon } from "lucide-react";
+import { Sunrise, Star, Calendar, Moon } from "lucide-react";
 import type { PanchangData } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/hooks/use-language";
@@ -13,155 +12,142 @@ interface TodayPanchangProps {
 
 export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
   const { language, t } = useLanguage();
-  
+
   if (isLoading) {
     return (
-      <Card className="overflow-hidden" data-testid="card-today-panchang-loading">
-        <CardHeader className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 pb-4">
-          <Skeleton className="h-8 w-48" />
-        </CardHeader>
-        <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
-            <Skeleton className="h-32" />
+      <div data-testid="card-today-panchang-loading">
+        <div className="cel-hero rounded-[18px] p-8 md:p-12">
+          <div className="flex items-center justify-between gap-6">
+            <div className="space-y-4 flex-1">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-12 w-72 max-w-full" />
+              <Skeleton className="h-5 w-56" />
+            </div>
+            <Skeleton className="h-32 w-32 rounded-full" />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px cel-strip rounded-[14px] overflow-hidden mt-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-none" />
+          ))}
+        </div>
+      </div>
     );
   }
 
   if (!panchang) {
     return (
-      <Card className="overflow-hidden" data-testid="card-today-panchang-empty">
-        <CardContent className="pt-6">
-          <p className="text-muted-foreground text-center">
-            Unable to load today's panchang data
-          </p>
-        </CardContent>
-      </Card>
+      <div className="cel-hero rounded-[18px] p-10 text-center" data-testid="card-today-panchang-empty">
+        <p className="text-muted-foreground">Unable to load today's panchang data</p>
+      </div>
     );
   }
 
+  const teluguDateLine =
+    language === "telugu"
+      ? `${panchang.teluguMonth} ${panchang.teluguDate}, ${panchang.teluguYear}`
+      : `${panchang.teluguMonthEnglish} ${panchang.teluguDate}, ${panchang.teluguYear}`;
+
   return (
-    <Card className="overflow-hidden" data-testid="card-today-panchang">
-      <CardHeader className="bg-gradient-to-r from-primary/10 via-accent/10 to-primary/10 pb-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <CardTitle className="text-2xl font-serif flex flex-wrap items-center gap-2">
-              <span data-testid="text-telugu-date">
-                {language === "telugu" 
-                  ? `${panchang.teluguMonth} ${panchang.teluguDate}, ${panchang.teluguYear}`
-                  : `${panchang.teluguMonthEnglish} ${panchang.teluguDate}, ${panchang.teluguYear}`
-                }
-              </span>
-              {panchang.isSpecialDay && (
-                <Badge variant="default" className="ml-2" data-testid="badge-special-day">
-                  {language === "telugu" ? panchang.specialDayInfoTelugu : panchang.specialDayInfo}
-                </Badge>
-              )}
-            </CardTitle>
+    <div data-testid="card-today-panchang">
+      {/* ---- Hero almanac plate ---- */}
+      <section className="cel-hero relative overflow-hidden rounded-[18px] p-7 md:p-12">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+          <div className="min-w-0">
+            <div className="cel-eyebrow">{t("నేటి తిథి", "Today")} &middot; {t("Today", "నేటి తిథి")}</div>
+            <h1
+              className="cel-headline text-4xl md:text-5xl lg:text-[3.4rem] mt-3 mb-1"
+              data-testid="text-telugu-date"
+            >
+              {teluguDateLine}
+            </h1>
             {panchang.samvatsaraName && (
-              <p className="text-sm font-medium text-primary mt-1" data-testid="text-samvatsara">
+              <p className="font-serif italic text-xl md:text-2xl text-primary" data-testid="text-samvatsara">
                 {language === "telugu"
                   ? `శ్రీ ${panchang.samvatsaraNameTelugu} నామ సంవత్సరం`
                   : `Sri ${panchang.samvatsaraName} Nama Samvatsaram`}
               </p>
             )}
-            <p className="text-muted-foreground mt-1" data-testid="text-english-date">
-              {new Date(panchang.date + "T12:00:00").toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
+            <p className="text-muted-foreground mt-2" data-testid="text-english-date">
+              {new Date(panchang.date + "T12:00:00").toLocaleDateString("en-US", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
               })}
             </p>
-          </div>
-          <MoonPhase phase={panchang.moonPhase} size={56} />
-        </div>
-      </CardHeader>
-      
-      <CardContent className="pt-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-primary/10">
-                <Moon className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("తిథి", "Tithi")}</p>
-                <p className="font-medium" data-testid="text-tithi">
-                  {language === "telugu" 
-                    ? `${panchang.pakshaTelugu} ${panchang.tithiTelugu}`
-                    : `${panchang.paksha} ${panchang.tithi}`
-                  }
-                </p>
-                <p className="text-xs text-muted-foreground mt-1" data-testid="text-tithi-timing">
-                  {panchang.tithiStartTime} - {panchang.tithiEndTime}
-                </p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-accent/20">
-                <Star className="h-5 w-5 text-accent-foreground" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("నక్షత్రం", "Nakshatra")}</p>
-                <p className="font-medium" data-testid="text-nakshatra">
-                  {language === "telugu" ? panchang.nakshatraTelugu : panchang.nakshatra}
-                </p>
-                <p className="text-xs text-muted-foreground mt-1" data-testid="text-nakshatra-timing">
-                  {panchang.nakshatraStartTime} - {panchang.nakshatraEndTime}
-                </p>
-              </div>
-            </div>
-          </div>
-          
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-amber-500/10">
-                <Sunrise className="h-5 w-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("సూర్యోదయం", "Sunrise")}</p>
-                <p className="font-medium" data-testid="text-sunrise">{panchang.sunrise}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-orange-500/10">
-                <Sunset className="h-5 w-5 text-orange-600" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("సూర్యాస్తమయం", "Sunset")}</p>
-                <p className="font-medium" data-testid="text-sunset">{panchang.sunset}</p>
-              </div>
-            </div>
-            
-            {panchang.timezone && (
-              <p className="text-xs text-muted-foreground pt-2" data-testid="text-timezone">
-                {t("టైమ్‌జోన్", "Timezone")}: {panchang.timezone}
-              </p>
+            {panchang.isSpecialDay && (
+              <Badge
+                className="mt-4 font-display tracking-[0.16em] uppercase text-[11px] px-4 py-1.5 bg-gradient-to-r from-primary to-accent text-primary-foreground border-0"
+                data-testid="badge-special-day"
+              >
+                ✦ {language === "telugu" ? panchang.specialDayInfoTelugu : panchang.specialDayInfo}
+              </Badge>
             )}
           </div>
-          
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-md bg-primary/10">
-                <Calendar className="h-5 w-5 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">{t("తెలుగు మాసం", "Telugu Month")}</p>
-                <p className="font-medium" data-testid="text-telugu-month">
-                  {panchang.isAdhikaMasa && (language === "telugu" ? "అధిక " : "Adhika ")}
-                  {language === "telugu" ? panchang.teluguMonth : panchang.teluguMonthEnglish}
-                </p>
-              </div>
+
+          <div className="flex-none text-center self-center">
+            <div className="cel-halo inline-block">
+              <MoonPhase phase={panchang.moonPhase} size={132} />
+            </div>
+            <div className="cel-eyebrow mt-3 text-[0.62rem]">
+              {language === "telugu" ? panchang.pakshaTelugu : panchang.paksha}
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </section>
+
+      {/* ---- Four-up metric strip ---- */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-px cel-strip rounded-[14px] overflow-hidden mt-6">
+        <div className="cel-strip-cell p-5 md:p-6">
+          <div className="cel-metric-k flex items-center gap-2">
+            <Moon className="h-3.5 w-3.5" /> {t("తిథి", "Tithi")}
+          </div>
+          <p className="font-telugu text-xl md:text-2xl mt-2.5" data-testid="text-tithi">
+            {language === "telugu" ? panchang.tithiTelugu : panchang.tithi}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1" data-testid="text-tithi-timing">
+            {panchang.tithiStartTime} → {panchang.tithiEndTime}
+          </p>
+        </div>
+
+        <div className="cel-strip-cell p-5 md:p-6">
+          <div className="cel-metric-k flex items-center gap-2">
+            <Star className="h-3.5 w-3.5" /> {t("నక్షత్రం", "Nakshatra")}
+          </div>
+          <p className="font-telugu text-xl md:text-2xl mt-2.5" data-testid="text-nakshatra">
+            {language === "telugu" ? panchang.nakshatraTelugu : panchang.nakshatra}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1" data-testid="text-nakshatra-timing">
+            {panchang.nakshatraStartTime} → {panchang.nakshatraEndTime}
+          </p>
+        </div>
+
+        <div className="cel-strip-cell p-5 md:p-6">
+          <div className="cel-metric-k flex items-center gap-2">
+            <Sunrise className="h-3.5 w-3.5" /> {t("సూర్యుడు", "Sun")}
+          </div>
+          <p className="font-telugu text-xl md:text-2xl mt-2.5">
+            <span data-testid="text-sunrise">{panchang.sunrise}</span>
+            <span className="text-muted-foreground"> &middot; </span>
+            <span data-testid="text-sunset">{panchang.sunset}</span>
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">{t("ఉదయం & అస్తమయం", "rise & set")}</p>
+        </div>
+
+        <div className="cel-strip-cell p-5 md:p-6">
+          <div className="cel-metric-k flex items-center gap-2">
+            <Calendar className="h-3.5 w-3.5" /> {t("మాసం", "Masa")}
+          </div>
+          <p className="font-telugu text-xl md:text-2xl mt-2.5" data-testid="text-telugu-month">
+            {panchang.isAdhikaMasa && (language === "telugu" ? "అధిక " : "Adhika ")}
+            {language === "telugu" ? panchang.teluguMonth : panchang.teluguMonthEnglish}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            {language === "telugu" ? panchang.pakshaTelugu : panchang.paksha} {t("పక్షం", "Paksha")}
+          </p>
+        </div>
+      </div>
+    </div>
   );
 }
