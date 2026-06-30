@@ -14,7 +14,8 @@ import { InstallBanner } from "@/components/install-banner";
 import { VrathamsList } from "@/components/vrathams-list";
 import { VrathamDetail } from "@/components/vratham-detail";
 import { FestivalBanner } from "@/components/festival-banner";
-import { vrathamForDate, type Vratham } from "@/lib/vrathams";
+import { FestivalDetail } from "@/components/festival-detail";
+import { vrathamForDate, vrathamBySlug, type Vratham } from "@/lib/vrathams";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Bell, Sparkles, LogOut, Settings, Flower2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,7 @@ export default function Home() {
   const [timezone, setTimezone] = useState(getStoredTimezone());
   const [activeTab, setActiveTab] = useState("calendar");
   const [selectedVratham, setSelectedVratham] = useState<Vratham | null>(null);
+  const [selectedFestival, setSelectedFestival] = useState<Festival | null>(null);
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null);
 
   const handleTimezoneChange = (newTimezone: string) => {
@@ -143,6 +145,18 @@ export default function Home() {
   const openVratham = useCallback((v: Vratham) => {
     setSelectedVratham(v);
     setActiveTab("vrathams");
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const openVrathamBySlug = useCallback((slug: string) => {
+    const v = vrathamBySlug(slug);
+    if (v) openVratham(v);
+  }, [openVratham]);
+
+  // Open a festival's detail page (the event page that links to its vratham).
+  const openFestival = useCallback((festival: Festival) => {
+    setSelectedFestival(festival);
+    setActiveTab("events");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
 
@@ -283,7 +297,7 @@ export default function Home() {
                   festivals={upcomingFestivals || []}
                   title={t("రాబోయే పండుగలు", "Upcoming Festivals")}
                   isLoading={loadingFestivals}
-                  onFestivalClick={navigateToFestival}
+                  onFestivalClick={openFestival}
                 />
               </div>
             </div>
@@ -292,16 +306,25 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6" data-testid="tabcontent-events">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FestivalsList
-                festivals={allFestivals || []}
-                title={t("అన్ని పండుగలు", "All Festivals")}
-                isLoading={loadingAllFestivals}
-                showPast
-                onFestivalClick={navigateToFestival}
+            {selectedFestival ? (
+              <FestivalDetail
+                festival={selectedFestival}
+                onBack={() => setSelectedFestival(null)}
+                onOpenVratham={openVrathamBySlug}
+                onViewInCalendar={navigateToFestival}
               />
-              <TempleEvents events={upcomingEvents || []} isLoading={loadingEvents} />
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <FestivalsList
+                  festivals={allFestivals || []}
+                  title={t("అన్ని పండుగలు", "All Festivals")}
+                  isLoading={loadingAllFestivals}
+                  showPast
+                  onFestivalClick={openFestival}
+                />
+                <TempleEvents events={upcomingEvents || []} isLoading={loadingEvents} />
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="vrathams" data-testid="tabcontent-vrathams">
