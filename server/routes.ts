@@ -115,7 +115,7 @@ export async function registerRoutes(
     if (!isChatConfigured()) {
       return res.status(503).json({
         error:
-          "Chat is not configured. Set ANTHROPIC_API_KEY on the server to enable it.",
+          "Chat is not configured. Enable the Anthropic AI integration (Replit-managed billing) or set ANTHROPIC_API_KEY on the server.",
       });
     }
 

@@ -28,18 +28,36 @@ export interface ChatMessage {
   content: string;
 }
 
+// Prefer Replit-managed AI billing (no separate Anthropic account / credits
+// needed) when its env vars are present; fall back to a direct ANTHROPIC_API_KEY
+// if someone wants to use their own Anthropic account instead.
+function getConfig(): { apiKey: string; baseURL?: string } | null {
+  const integrationKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
+  const integrationBaseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;
+  if (integrationKey && integrationBaseURL) {
+    return { apiKey: integrationKey, baseURL: integrationBaseURL };
+  }
+  const directKey = process.env.ANTHROPIC_API_KEY;
+  if (directKey) {
+    return { apiKey: directKey };
+  }
+  return null;
+}
+
 let client: Anthropic | null = null;
 function getClient(): Anthropic {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    throw new Error("ANTHROPIC_API_KEY is not configured on the server.");
+  const config = getConfig();
+  if (!config) {
+    throw new Error("Anthropic AI is not configured on the server.");
   }
-  if (!client) client = new Anthropic({ apiKey });
+  if (!client) {
+    client = new Anthropic({ apiKey: config.apiKey, baseURL: config.baseURL });
+  }
   return client;
 }
 
 export function isChatConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return getConfig() !== null;
 }
 
 // Parse a YYYY-MM-DD string into a noon-UTC Date (matching how the rest of the
