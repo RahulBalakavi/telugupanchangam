@@ -1,4 +1,5 @@
-import { useState, useMemo, useCallback, useEffect } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useRoute } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { TodayPanchang } from "@/components/today-panchang";
 import { Sankalpam } from "@/components/sankalpam";
@@ -160,6 +161,26 @@ export default function Home() {
     setActiveTab("events");
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }, []);
+
+  // Deep links (/festivals/:slug, /vrathams/:slug) — when a visitor lands from
+  // search, open the matching detail view once. Guarded so it runs only on the
+  // initial deep link and never fights later in-app navigation.
+  const [, festRouteParams] = useRoute("/festivals/:slug");
+  const [, vrathRouteParams] = useRoute("/vrathams/:slug");
+  const deepLinkHandled = useRef(false);
+  useEffect(() => {
+    if (deepLinkHandled.current) return;
+    if (vrathRouteParams?.slug) {
+      openVrathamBySlug(vrathRouteParams.slug);
+      deepLinkHandled.current = true;
+    } else if (festRouteParams?.slug && allFestivals) {
+      const festival = allFestivals.find((f) => f.id === festRouteParams.slug);
+      if (festival) {
+        openFestival(festival);
+        deepLinkHandled.current = true;
+      }
+    }
+  }, [festRouteParams, vrathRouteParams, allFestivals, openFestival, openVrathamBySlug]);
 
   // Feed the day's real sunrise/sunset into the theme so auto mode flips at
   // the actual local horizon rather than a fixed 6am–6pm window.
