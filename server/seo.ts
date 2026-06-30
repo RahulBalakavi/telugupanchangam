@@ -76,6 +76,47 @@ function paragraphs(lines: string[]): string {
   return lines.map((l) => `<p>${esc(l)}</p>`).join("\n");
 }
 
+// Render the same Q&A both as visible HTML (indexable content) and, via
+// faqPage(), as FAQ structured data — keeping the two in sync.
+function faqSection(qa: { q: string; a: string }[]): string {
+  const items = qa
+    .map(({ q, a }) => `<dt><strong>${esc(q)}</strong></dt>\n<dd>${esc(a)}</dd>`)
+    .join("\n");
+  return `<section>\n  <h2>Frequently asked questions</h2>\n  <dl>\n${items}\n  </dl>\n</section>`;
+}
+
+// Internal-link block appended to every page so crawlers can traverse the site
+// and link equity flows between related pages.
+function relatedNav(): string {
+  return `<nav aria-label="Explore">
+  <h2>Explore</h2>
+  <ul>
+    <li><a href="/today">Today's panchangam &amp; muhurtam</a></li>
+    <li><a href="/festivals">Telugu festivals &amp; dates</a></li>
+    <li><a href="/vrathams">Vratham (puja) guides</a></li>
+    <li><a href="/">Telugu Panchangam home</a></li>
+  </ul>
+</nav>`;
+}
+
+function breadcrumb(items: { name: string; path: string }[]): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((it, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: it.name,
+      item: abs(it.path),
+    })),
+  };
+}
+
+// The festival (if any) whose puja is this vratham — for a reverse cross-link.
+function festivalForVratham(slug: string) {
+  return getAllFestivals().find((f) => festivalContent(f.id)?.vrathamSlug === slug);
+}
+
 // ---- per-page builders ----
 
 function homePage(): PageMeta {
@@ -148,9 +189,42 @@ function panchangPage(dateStr: string, isToday: boolean): PageMeta {
     )
     .join("\n");
 
+  const rahu = m.periods.find((x) => x.nameEn === "Rahu Kalam");
+  const yama = m.periods.find((x) => x.nameEn === "Yamagandam");
+  const gulika = m.periods.find((x) => x.nameEn === "Gulika Kalam");
+  const abhijit = m.periods.find((x) => x.nameEn === "Abhijit Muhurtam");
+  // "today" vs a fixed date — phrase questions for the high-intent "...today" queries.
+  const whenWord = isToday ? "today" : `on ${dateLabel}`;
+  const heading = isToday ? `Today's Panchangam — ${dateLabel}` : `Panchangam for ${dateLabel}`;
+
+  const faq: { q: string; a: string }[] = [
+    {
+      q: `What is the tithi ${whenWord}?`,
+      a: `The tithi ${whenWord} is ${p.tithi} (${p.tithiTelugu}), nakshatra ${p.nakshatra}, in the ${p.paksha} paksha of ${p.teluguMonthEnglish} masa.`,
+    },
+  ];
+  if (rahu) {
+    faq.push({
+      q: `What is the Rahu Kalam ${whenWord}?`,
+      a: `Rahu Kalam ${whenWord} is ${rahu.start}–${rahu.end} (${TZ}) — traditionally avoided for travel and new ventures.`,
+    });
+  }
+  if (abhijit) {
+    faq.push({
+      q: `What is the Abhijit Muhurtam ${whenWord}?`,
+      a: `Abhijit Muhurtam ${whenWord} is ${abhijit.start}–${abhijit.end} (${TZ}) — the auspicious midday window, favourable for travel and new beginnings.`,
+    });
+  }
+  if (rahu && yama && gulika) {
+    faq.push({
+      q: `Is ${isToday ? "today" : dateLabel} a good day for travel or starting new work?`,
+      a: `Avoid Rahu Kalam (${rahu.start}–${rahu.end}), Yamagandam (${yama.start}–${yama.end}) and Gulika Kalam (${gulika.start}–${gulika.end}); the Abhijit Muhurtam${abhijit ? ` (${abhijit.start}–${abhijit.end})` : ""} is the auspicious window.`,
+    });
+  }
+
   const body = `
 <main style="max-width:760px;margin:0 auto;padding:24px;font-family:Georgia,serif">
-  <h1>Panchangam for ${esc(dateLabel)}</h1>
+  <h1>${esc(heading)}</h1>
   <ul>
     <li><strong>Tithi:</strong> ${esc(p.tithi)} (${esc(p.tithiTelugu)})</li>
     <li><strong>Nakshatra:</strong> ${esc(p.nakshatra)} (${esc(p.nakshatraTelugu)})</li>
@@ -158,29 +232,25 @@ function panchangPage(dateStr: string, isToday: boolean): PageMeta {
     <li><strong>Masa:</strong> ${esc(p.teluguMonthEnglish)} (${esc(p.teluguMonth)}), ${esc(p.samvatsaraName)} samvatsara</li>
     <li><strong>Sunrise / Sunset:</strong> ${esc(p.sunrise)} / ${esc(p.sunset)} (${esc(TZ)})</li>
   </ul>
-  <h2>Muhurtam timings</h2>
+  <h2>Muhurtam timings ${esc(whenWord)}</h2>
   <ul>${muhurtamRows}</ul>
+  ${faqSection(faq)}
+  ${relatedNav()}
 </main>`.trim();
 
-  const rahu = m.periods.find((x) => x.nameEn === "Rahu Kalam");
-  const abhijit = m.periods.find((x) => x.nameEn === "Abhijit Muhurtam");
-
   return {
-    title: `Panchangam for ${dateLabel} — Tithi ${p.tithi}, Nakshatra ${p.nakshatra} | Telugu Panchangam`,
-    description: `Panchangam for ${dateLabel}: tithi ${p.tithi}, nakshatra ${p.nakshatra}, ${p.paksha} paksha, sunrise ${p.sunrise}, sunset ${p.sunset}, with Rahu Kalam, Yamagandam and Abhijit muhurtam timings.`,
+    title: isToday
+      ? `Today's Panchangam — Tithi, Nakshatra, Rahu Kalam & Muhurtam (${dateLabel}) | Telugu Panchangam`
+      : `Panchangam for ${dateLabel} — Tithi ${p.tithi}, Nakshatra ${p.nakshatra} | Telugu Panchangam`,
+    description: isToday
+      ? `Today's Telugu panchangam (${dateLabel}): tithi ${p.tithi}, nakshatra ${p.nakshatra}, Rahu Kalam ${rahu ? `${rahu.start}–${rahu.end}` : ""}, Abhijit muhurtam, sunrise ${p.sunrise}, sunset ${p.sunset}.`
+      : `Panchangam for ${dateLabel}: tithi ${p.tithi}, nakshatra ${p.nakshatra}, ${p.paksha} paksha, sunrise ${p.sunrise}, sunset ${p.sunset}, with Rahu Kalam, Yamagandam and Abhijit muhurtam timings.`,
     canonicalPath: isToday ? "/today" : `/panchangam/${dateStr}`,
     jsonLd: [
-      faqPage([
-        {
-          q: `What is the tithi on ${dateLabel}?`,
-          a: `On ${dateLabel}, the tithi is ${p.tithi} (${p.tithiTelugu}) and the nakshatra is ${p.nakshatra}, in the ${p.paksha} paksha of ${p.teluguMonthEnglish} masa.`,
-        },
-        rahu
-          ? {
-              q: `What is the Rahu Kalam on ${dateLabel}?`,
-              a: `Rahu Kalam on ${dateLabel} is ${rahu.start}–${rahu.end} (${TZ}). Abhijit Muhurtam (auspicious) is ${abhijit ? `${abhijit.start}–${abhijit.end}` : "around local noon"}.`,
-            }
-          : { q: "What are muhurtam timings?", a: "Auspicious and inauspicious time windows for the day, computed from sunrise, sunset and the weekday." },
+      faqPage(faq),
+      breadcrumb([
+        { name: "Home", path: "/" },
+        { name: isToday ? "Today's Panchangam" : `Panchangam ${dateStr}`, path: isToday ? "/today" : `/panchangam/${dateStr}` },
       ]),
     ],
     bodyHtml: body,
@@ -202,6 +272,7 @@ function festivalsListPage(): PageMeta {
   <h1>Telugu Festivals &amp; Their Dates</h1>
   <p>Dates and significance of major Telugu and Hindu festivals. Tap a festival for details and, where applicable, its vratham (puja) guide.</p>
   <ul>${items}</ul>
+  ${relatedNav()}
 </main>`.trim();
 
   return {
@@ -221,6 +292,10 @@ function festivalsListPage(): PageMeta {
           url: abs(`/festivals/${f.id}`),
         })),
       },
+      breadcrumb([
+        { name: "Home", path: "/" },
+        { name: "Festivals", path: "/festivals" },
+      ]),
     ],
     bodyHtml: body,
     maxAge: 3600,
@@ -237,14 +312,38 @@ function festivalPage(slug: string): PageMeta | null {
   const aboutTe = content?.aboutTe?.length ? content.aboutTe : [f.descriptionTelugu];
   const vrathamSlug = content?.vrathamSlug;
 
+  const faq: { q: string; a: string }[] = [
+    {
+      q: `When is ${f.name} in ${year}?`,
+      a: `${f.name} (${f.nameTelugu}) in ${year} falls on ${dateLabel}.`,
+    },
+    { q: `What is ${f.name} and its significance?`, a: about[0] },
+  ];
+  if (f.relatedTithi) {
+    faq.push({
+      q: `On which tithi is ${f.name} celebrated?`,
+      a: `${f.name} is observed on ${f.relatedTithi} tithi.`,
+    });
+  }
+  if (about[1]) faq.push({ q: `How is ${f.name} celebrated?`, a: about[1] });
+  if (vrathamSlug) {
+    faq.push({
+      q: `How do you perform the ${f.name} puja at home?`,
+      a: `Follow the step-by-step ${f.name} vratham guide, which lists the puja procedure and the full samagri (shopping list).`,
+    });
+  }
+
   const body = `
 <main style="max-width:760px;margin:0 auto;padding:24px;font-family:Georgia,serif">
+  <nav aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/festivals">Festivals</a> › ${esc(f.name)}</nav>
   <h1>${esc(f.name)} ${esc(year)} — ${esc(f.nameTelugu)}</h1>
   <p><strong>Date:</strong> ${esc(dateLabel)}${f.relatedTithi ? ` · <strong>Tithi:</strong> ${esc(f.relatedTithi)}` : ""}</p>
   ${paragraphs(about)}
   <h2>తెలుగులో</h2>
   ${paragraphs(aboutTe)}
   ${vrathamSlug ? `<p><a href="/vrathams/${esc(vrathamSlug)}">How to perform the ${esc(f.name)} vratham (puja guide) →</a></p>` : ""}
+  ${faqSection(faq)}
+  ${relatedNav()}
 </main>`.trim();
 
   return {
@@ -268,12 +367,11 @@ function festivalPage(slug: string): PageMeta | null {
           address: { "@type": "PostalAddress", addressCountry: "IN" },
         },
       },
-      faqPage([
-        {
-          q: `When is ${f.name} in ${year}?`,
-          a: `${f.name} (${f.nameTelugu}) in ${year} falls on ${dateLabel}.`,
-        },
-        { q: `What is ${f.name}?`, a: about[0] },
+      faqPage(faq),
+      breadcrumb([
+        { name: "Home", path: "/" },
+        { name: "Festivals", path: "/festivals" },
+        { name: f.name, path: `/festivals/${f.id}` },
       ]),
     ],
     bodyHtml: body,
@@ -291,6 +389,7 @@ function vrathamsListPage(): PageMeta {
   <h1>Vratham (Puja) Guides</h1>
   <p>Step-by-step guides to perform key vrathams at home, with the puja procedure and samagri (shopping list).</p>
   <ul>${items}</ul>
+  ${relatedNav()}
 </main>`.trim();
 
   return {
@@ -310,6 +409,10 @@ function vrathamsListPage(): PageMeta {
           url: abs(`/vrathams/${v.slug}`),
         })),
       },
+      breadcrumb([
+        { name: "Home", path: "/" },
+        { name: "Vrathams", path: "/vrathams" },
+      ]),
     ],
     bodyHtml: body,
     maxAge: 3600,
@@ -322,8 +425,24 @@ function vrathamPage(slug: string): PageMeta | null {
   const supplies = v.samagri.flatMap((g) => g.items.map((it) => it.en));
   const supplyList = supplies.map((s) => `<li>${esc(s)}</li>`).join("\n");
 
+  const relatedFestival = festivalForVratham(v.slug);
+
+  const faq: { q: string; a: string }[] = [
+    { q: `When is ${v.nameEn} performed?`, a: v.whenEn },
+    { q: `How do you perform ${v.nameEn} at home?`, a: v.aboutEn[0] },
+    {
+      q: `What samagri (items) are needed for ${v.nameEn}?`,
+      a: `The main items include: ${supplies.slice(0, 12).join(", ")}.`,
+    },
+    {
+      q: `Which deity is worshipped in ${v.nameEn}?`,
+      a: `${v.nameEn} is dedicated to ${v.deityEn} (${v.deityTe}).`,
+    },
+  ];
+
   const body = `
 <main style="max-width:760px;margin:0 auto;padding:24px;font-family:Georgia,serif">
+  <nav aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/vrathams">Vrathams</a> › ${esc(v.nameEn)}</nav>
   <h1>${esc(v.nameEn)} — ${esc(v.nameTe)}</h1>
   <p><strong>Deity:</strong> ${esc(v.deityEn)} (${esc(v.deityTe)})</p>
   <h2>When it is performed</h2>
@@ -331,6 +450,9 @@ function vrathamPage(slug: string): PageMeta | null {
   ${paragraphs(v.aboutEn)}
   <h2>Puja samagri (shopping list)</h2>
   <ul>${supplyList}</ul>
+  ${relatedFestival ? `<p><a href="/festivals/${esc(relatedFestival.id)}">About the ${esc(relatedFestival.name)} festival →</a></p>` : ""}
+  ${faqSection(faq)}
+  ${relatedNav()}
 </main>`.trim();
 
   return {
@@ -358,12 +480,11 @@ function vrathamPage(slug: string): PageMeta | null {
           },
         ],
       },
-      faqPage([
-        { q: `When is ${v.nameEn} performed?`, a: v.whenEn },
-        {
-          q: `What samagri is needed for ${v.nameEn}?`,
-          a: `The main items include: ${supplies.slice(0, 12).join(", ")}.`,
-        },
+      faqPage(faq),
+      breadcrumb([
+        { name: "Home", path: "/" },
+        { name: "Vrathams", path: "/vrathams" },
+        { name: v.nameEn, path: `/vrathams/${v.slug}` },
       ]),
     ],
     bodyHtml: body,
