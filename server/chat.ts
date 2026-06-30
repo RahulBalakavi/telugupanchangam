@@ -44,6 +44,64 @@ function getConfig(): { apiKey: string; baseURL?: string } | null {
   return null;
 }
 
+// Why the AI couldn't answer, so the route/UI can show a clear message and the
+// raw provider error stays in the server logs only.
+export type ChatUnavailableReason =
+  | "rate_limit" // provider throttled us (too many requests)
+  | "billing" // out of credits / quota / auth problem on the provider account
+  | "outage" // provider 5xx / overloaded / network failure
+  | "unknown"; // anything else we couldn't classify
+
+export class ChatUnavailableError extends Error {
+  reason: ChatUnavailableReason;
+  constructor(reason: ChatUnavailableReason, message: string) {
+    super(message);
+    this.name = "ChatUnavailableError";
+    this.reason = reason;
+  }
+}
+
+// Map a raw provider/SDK error to a coarse reason. We never surface the raw
+// message to users — it can contain account/billing details — but we do return
+// a reason so the UI can explain the situation appropriately.
+function classifyProviderError(err: unknown): ChatUnavailableError {
+  const rawMessage = err instanceof Error ? err.message : String(err);
+
+  if (err instanceof Anthropic.APIError) {
+    const status = err.status;
+    const lower = rawMessage.toLowerCase();
+    const looksLikeBilling =
+      lower.includes("credit") ||
+      lower.includes("billing") ||
+      lower.includes("quota") ||
+      lower.includes("payment") ||
+      lower.includes("insufficient");
+
+    if (status === 401 || status === 403) {
+      return new ChatUnavailableError("billing", rawMessage);
+    }
+    if (status === 429) {
+      return new ChatUnavailableError(
+        looksLikeBilling ? "billing" : "rate_limit",
+        rawMessage,
+      );
+    }
+    if (status === 400 && looksLikeBilling) {
+      return new ChatUnavailableError("billing", rawMessage);
+    }
+    if (status === 529 || (typeof status === "number" && status >= 500)) {
+      return new ChatUnavailableError("outage", rawMessage);
+    }
+    // Connection / timeout errors from the SDK have no HTTP status.
+    if (typeof status !== "number") {
+      return new ChatUnavailableError("outage", rawMessage);
+    }
+    return new ChatUnavailableError("unknown", rawMessage);
+  }
+
+  return new ChatUnavailableError("unknown", rawMessage);
+}
+
 let client: Anthropic | null = null;
 function getClient(): Anthropic {
   const config = getConfig();
@@ -275,13 +333,19 @@ export async function runChat(
   }));
 
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 2048,
-      system: systemPrompt(timezone, language),
-      tools,
-      messages: convo,
-    });
+    let response: Anthropic.Message;
+    try {
+      response = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 2048,
+        system: systemPrompt(timezone, language),
+        tools,
+        messages: convo,
+      });
+    } catch (err) {
+      // Turn raw provider/SDK failures into a classified, user-safe error.
+      throw classifyProviderError(err);
+    }
 
     if (response.stop_reason === "tool_use") {
       convo.push({ role: "assistant", content: response.content });

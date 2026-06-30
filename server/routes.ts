@@ -14,7 +14,12 @@ import {
   getTempleEventsForDate,
 } from "./data";
 import { notificationPreferenceSchema } from "@shared/schema";
-import { runChat, isChatConfigured, type ChatMessage } from "./chat";
+import {
+  runChat,
+  isChatConfigured,
+  ChatUnavailableError,
+  type ChatMessage,
+} from "./chat";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { storage } from "./storage";
 import { getVapidPublicKey, startNotificationScheduler, sendNotificationToUser } from "./push-service";
@@ -149,7 +154,15 @@ export async function registerRoutes(
       );
       res.json({ reply });
     } catch (error) {
+      // Log the raw error server-side, but never surface it verbatim to users.
       console.error("Chat error:", error);
+      if (error instanceof ChatUnavailableError) {
+        return res.status(503).json({
+          error: "The assistant is temporarily unavailable. Please try again later.",
+          code: "ai_unavailable",
+          reason: error.reason,
+        });
+      }
       res.status(500).json({ error: "Failed to generate a response." });
     }
   });

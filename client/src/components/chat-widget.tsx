@@ -76,12 +76,38 @@ export function ChatWidget() {
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
+        // Provider errors (out of credits, rate limited, outage) come back as a
+        // 503 with code "ai_unavailable" — show a calm, localized message
+        // instead of a raw error so users know it's the service, not them.
+        if (res.status === 503 && body.code === "ai_unavailable") {
+          setError(
+            t(
+              "సహాయకుడు ప్రస్తుతం అందుబాటులో లేడు. దయచేసి కొద్దిసేపటి తర్వాత మళ్ళీ ప్రయత్నించండి.",
+              "The assistant is temporarily unavailable. Please try again later.",
+            ),
+          );
+          return;
+        }
+        if (res.status === 429) {
+          setError(
+            t(
+              "చాలా ప్రశ్నలు పంపారు. దయచేసి కొద్దిసేపు ఆగి మళ్ళీ ప్రయత్నించండి.",
+              "Too many requests. Please slow down and try again.",
+            ),
+          );
+          return;
+        }
         throw new Error(body.error || `Request failed (${res.status})`);
       }
       const data = await res.json();
       setMessages([...next, { role: "assistant", content: data.reply }]);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong.");
+      setError(
+        t(
+          "ఏదో తప్పు జరిగింది. దయచేసి మళ్ళీ ప్రయత్నించండి.",
+          "Something went wrong. Please try again.",
+        ),
+      );
     } finally {
       setLoading(false);
     }
