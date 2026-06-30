@@ -14,6 +14,7 @@ import {
   getTempleEventsForDate,
 } from "./data";
 import { notificationPreferenceSchema } from "@shared/schema";
+import { runChat, isChatConfigured, type ChatMessage } from "./chat";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { storage } from "./storage";
 import { getVapidPublicKey, startNotificationScheduler, sendNotificationToUser } from "./push-service";
@@ -89,6 +90,68 @@ export async function registerRoutes(
     const limit = parseInt(req.query.limit as string) || 10;
     const events = getUpcomingTempleEvents(limit);
     res.json(events);
+  });
+
+  // Agentic chat - public, but lightly rate-limited to bound token spend.
+  const chatRateWindowMs = 60_000;
+  const chatRateMax = 15; // requests per IP per window
+  const chatHits = new Map<string, number[]>();
+
+  const chatMessageSchema = z.object({
+    role: z.enum(["user", "assistant"]),
+    content: z.string().min(1).max(4000),
+  });
+  const chatRequestSchema = z.object({
+    messages: z.array(chatMessageSchema).min(1).max(30),
+    timezone: z.string().optional(),
+    language: z.enum(["telugu", "english"]).optional(),
+  });
+
+  app.get("/api/chat/status", (_req, res) => {
+    res.json({ enabled: isChatConfigured() });
+  });
+
+  app.post("/api/chat", async (req, res) => {
+    if (!isChatConfigured()) {
+      return res.status(503).json({
+        error:
+          "Chat is not configured. Set ANTHROPIC_API_KEY on the server to enable it.",
+      });
+    }
+
+    // Simple sliding-window rate limit per client IP.
+    const ip = req.ip || "unknown";
+    const now = Date.now();
+    const recent = (chatHits.get(ip) || []).filter(
+      (t) => now - t < chatRateWindowMs,
+    );
+    if (recent.length >= chatRateMax) {
+      return res
+        .status(429)
+        .json({ error: "Too many requests. Please slow down and try again." });
+    }
+    recent.push(now);
+    chatHits.set(ip, recent);
+
+    const parsed = chatRequestSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res
+        .status(400)
+        .json({ error: "Invalid request", details: parsed.error.errors });
+    }
+
+    const { messages, timezone, language } = parsed.data;
+    try {
+      const reply = await runChat(
+        messages as ChatMessage[],
+        timezone || "Asia/Kolkata",
+        language || "english",
+      );
+      res.json({ reply });
+    } catch (error) {
+      console.error("Chat error:", error);
+      res.status(500).json({ error: "Failed to generate a response." });
+    }
   });
 
   // Protected API routes - authentication required for notifications

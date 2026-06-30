@@ -484,7 +484,7 @@ function getDayOfYear(date: Date): number {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 }
 
-function getTimezoneCoordinates(timezone: string): { lat: number; lon: number; offset: number } {
+export function getTimezoneCoordinates(timezone: string): { lat: number; lon: number; offset: number } {
   const timezoneData: Record<string, { lat: number; lon: number; offset: number }> = {
     "Asia/Kolkata": { lat: 17.385, lon: 78.4867, offset: 5.5 },
     "Asia/Dubai": { lat: 25.2048, lon: 55.2708, offset: 4 },

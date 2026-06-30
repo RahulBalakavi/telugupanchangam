@@ -101,7 +101,15 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
 
   if (path.startsWith("/api/")) {
     const method = (init?.method || "GET").toUpperCase();
-    if (method !== "GET") return jsonResponse({ ok: true });
+    if (method !== "GET") {
+      if (path === "/api/chat") {
+        return jsonResponse({
+          reply:
+            "🙏 (Preview mode) In the live app I'd look up today's panchang, muhurtam, festivals and vratham guides to answer this. Set ANTHROPIC_API_KEY and run the full server to chat for real.",
+        });
+      }
+      return jsonResponse({ ok: true });
+    }
 
     if (path === "/api/auth/user") return jsonResponse(mockUser);
     if (path.startsWith("/api/panchang/")) return jsonResponse({ ...basePanchang, timezone });
@@ -115,6 +123,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
     if (path.startsWith("/api/temple-events")) return jsonResponse(templeEvents);
     if (path.startsWith("/api/notifications/preferences")) return jsonResponse(preferences);
     if (path.startsWith("/api/push/vapid-public-key")) return jsonResponse({ publicKey: "" });
+    if (path === "/api/chat/status") return jsonResponse({ enabled: true });
     return jsonResponse({});
   }
 
