@@ -1,0 +1,33 @@
+<!doctype html>
+<!--
+  Open Graph card, 1200x630. To produce og-image.png:
+    - Open this file, set the browser/viewport to exactly 1200x630, screenshot, save as
+      client/public/og-image.png; OR
+    - npx playwright screenshot --viewport-size=1200,630 og-card.html og-image.png
+  Then point og:image / twitter:image in index.html at /og-image.png and set
+  twitter:card back to "summary_large_image".
+-->
+<meta charset="utf-8">
+<style>
+  html,body{margin:0}
+  .card{
+    width:1200px;height:630px;box-sizing:border-box;
+    display:flex;flex-direction:column;justify-content:center;gap:18px;
+    padding:0 90px;
+    background:radial-gradient(120% 120% at 80% 10%, #1b2447 0%, #0b1020 55%, #070a14 100%);
+    color:#f4ead2;font-family:Georgia,"Noto Serif Telugu",serif;
+  }
+  .eyebrow{font-family:Arial,sans-serif;letter-spacing:.32em;text-transform:uppercase;
+    font-size:22px;color:#e8a23d}
+  .te{font-size:96px;font-weight:700;line-height:1;color:#f6c876}
+  .en{font-size:58px;font-weight:600;line-height:1.05;color:#f4ead2}
+  .sub{font-family:Arial,sans-serif;font-size:30px;color:#c9d2e8;max-width:980px}
+  .url{font-family:Arial,sans-serif;font-size:24px;color:#8a93ad;margin-top:8px}
+</style>
+<div class="card">
+  <div class="eyebrow">Celestial Almanac · తెలుగు పంచాంగం</div>
+  <div class="te">తెలుగు పంచాంగం</div>
+  <div class="en">Telugu Panchangam</div>
+  <div class="sub">Daily tithi &amp; nakshatra · festival dates · muhurtam timings · vratham guides</div>
+  <div class="url">mytelugupanchangam.space</div>
+</div>
