@@ -47,3 +47,7 @@ integrations = ["javascript_log_in_with_replit:2.0.0", "javascript_database:1.0.
 [userenv.shared]
 VAPID_PUBLIC_KEY = "BKyDtAS-DefLshgFutbUDDPNuwv6jPvI4nMsSHJf5m4y3gwltTqy8KQGHlEJyeGjWiQ8b6wS0GnoptcbY4JkWY4"
 VAPID_SUBJECT = "mailto:panchangam@replit.app"
+
+[postMerge]
+path = "scripts/post-merge.sh"
+timeoutMs = 20000
