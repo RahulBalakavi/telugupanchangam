@@ -15,6 +15,7 @@ import { VrathamsList } from "@/components/vrathams-list";
 import { VrathamDetail } from "@/components/vratham-detail";
 import { FestivalBanner } from "@/components/festival-banner";
 import { FestivalDetail } from "@/components/festival-detail";
+import { ChatWidget } from "@/components/chat-widget";
 import { vrathamForDate, vrathamBySlug, type Vratham } from "@/lib/vrathams";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Calendar, Bell, Sparkles, LogOut, Settings, Flower2 } from "lucide-react";
@@ -412,6 +413,8 @@ export default function Home() {
         open={modalOpen}
         onOpenChange={setModalOpen}
       />
+
+      <ChatWidget />
 
       <footer className="border-t py-6 mt-12">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
