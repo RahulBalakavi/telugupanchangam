@@ -114,6 +114,24 @@ const COUNTRIES: CountryInfo[] = [
 
 const STORAGE_KEY = "sankalpam_country";
 
+/** Best-effort map from an IANA timezone to the closest Sankalpam country. */
+function countryFromTimezone(tz?: string): string {
+  if (!tz) return "IN";
+  const exact: Record<string, string> = {
+    "Asia/Kolkata": "IN",
+    "Asia/Dubai": "AE",
+    "Asia/Singapore": "SG",
+    "Asia/Hong_Kong": "SG",
+    "Asia/Tokyo": "JP",
+    "America/Toronto": "CA",
+  };
+  if (exact[tz]) return exact[tz];
+  if (tz.startsWith("America/")) return "US";
+  if (tz.startsWith("Europe/")) return "GB";
+  if (tz.startsWith("Australia/") || tz.startsWith("Pacific/")) return "AU";
+  return "IN";
+}
+
 const RITUS = [
   { name: "Shishira", nameTelugu: "శిశిర", months: [9, 10] },
   { name: "Vasanta", nameTelugu: "వసంత", months: [11, 0] },
@@ -154,14 +172,23 @@ const TELUGU_MONTH_LIST = [
 
 export function Sankalpam({ panchang }: SankalpamProps) {
   const { language, t } = useLanguage();
-  const [countryCode, setCountryCode] = useState<string>("IN");
+  const [countryCode, setCountryCode] = useState<string>(() =>
+    (typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY)) || "IN",
+  );
+  // Whether the user explicitly picked a country (which overrides timezone auto-pick).
+  const [isManual, setIsManual] = useState<boolean>(
+    () => typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) != null,
+  );
 
+  // Auto-pick the country from the selected timezone unless the user chose one.
   useEffect(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-    if (stored) setCountryCode(stored);
-  }, []);
+    if (!isManual && panchang?.timezone) {
+      setCountryCode(countryFromTimezone(panchang.timezone));
+    }
+  }, [isManual, panchang?.timezone]);
 
   const handleCountryChange = (code: string) => {
+    setIsManual(true);
     setCountryCode(code);
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, code);

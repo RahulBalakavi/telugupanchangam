@@ -90,8 +90,11 @@ const realFetch = window.fetch.bind(window);
 window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
   const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
   let path = url;
+  let timezone = "Asia/Kolkata";
   try {
-    path = new URL(url, window.location.origin).pathname;
+    const parsed = new URL(url, window.location.origin);
+    path = parsed.pathname;
+    timezone = parsed.searchParams.get("timezone") || timezone;
   } catch {
     /* keep raw */
   }
@@ -101,8 +104,7 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
     if (method !== "GET") return jsonResponse({ ok: true });
 
     if (path === "/api/auth/user") return jsonResponse(mockUser);
-    if (path.startsWith("/api/panchang/today")) return jsonResponse(basePanchang);
-    if (path.startsWith("/api/panchang/")) return jsonResponse(basePanchang);
+    if (path.startsWith("/api/panchang/")) return jsonResponse({ ...basePanchang, timezone });
     if (path.startsWith("/api/calendar/")) {
       const m = path.match(/\/api\/calendar\/(\d+)\/(\d+)/);
       const year = m ? parseInt(m[1], 10) : 2026;

@@ -202,28 +202,42 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-6">
+      <main className="container mx-auto px-4 pt-6 pb-28 md:pb-6">
         <InstallBanner />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md mx-auto grid-cols-3" data-testid="tabs-main">
-            <TabsTrigger value="calendar" className="gap-2" data-testid="tab-calendar">
-              <Calendar className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("క్యాలెండర్", "Calendar")}</span>
+          {/* Desktop: centered top tabs. Mobile: fixed bottom icon nav. */}
+          <TabsList
+            className="fixed inset-x-0 bottom-0 z-50 grid h-16 grid-cols-3 rounded-none border-t bg-background/95 p-0 backdrop-blur pb-[env(safe-area-inset-bottom)] md:static md:mx-auto md:h-10 md:w-full md:max-w-md md:rounded-md md:border-0 md:bg-muted md:p-1"
+            data-testid="tabs-main"
+          >
+            <TabsTrigger
+              value="calendar"
+              className="h-full flex-col gap-1 rounded-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none md:h-auto md:flex-row md:gap-2 md:rounded-sm md:data-[state=active]:bg-background md:data-[state=active]:text-foreground md:data-[state=active]:shadow-sm"
+              data-testid="tab-calendar"
+            >
+              <Calendar className="h-5 w-5 md:h-4 md:w-4" />
+              <span className="text-[10px] leading-none md:text-sm">{t("క్యాలెండర్", "Calendar")}</span>
             </TabsTrigger>
-            <TabsTrigger value="events" className="gap-2" data-testid="tab-events">
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("పండుగలు", "Events")}</span>
+            <TabsTrigger
+              value="events"
+              className="h-full flex-col gap-1 rounded-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none md:h-auto md:flex-row md:gap-2 md:rounded-sm md:data-[state=active]:bg-background md:data-[state=active]:text-foreground md:data-[state=active]:shadow-sm"
+              data-testid="tab-events"
+            >
+              <Sparkles className="h-5 w-5 md:h-4 md:w-4" />
+              <span className="text-[10px] leading-none md:text-sm">{t("పండుగలు", "Events")}</span>
             </TabsTrigger>
-            <TabsTrigger value="settings" className="gap-2" data-testid="tab-settings">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("సెట్టింగ్స్", "Settings")}</span>
+            <TabsTrigger
+              value="settings"
+              className="h-full flex-col gap-1 rounded-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none md:h-auto md:flex-row md:gap-2 md:rounded-sm md:data-[state=active]:bg-background md:data-[state=active]:text-foreground md:data-[state=active]:shadow-sm"
+              data-testid="tab-settings"
+            >
+              <Settings className="h-5 w-5 md:h-4 md:w-4" />
+              <span className="text-[10px] leading-none md:text-sm">{t("సెట్టింగ్స్", "Settings")}</span>
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="calendar" className="space-y-6" data-testid="tabcontent-calendar">
             <TodayPanchang panchang={todayPanchang} isLoading={loadingToday} />
-
-            <Sankalpam panchang={todayPanchang} />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
@@ -246,6 +260,8 @@ export default function Home() {
                 />
               </div>
             </div>
+
+            <Sankalpam panchang={todayPanchang} />
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6" data-testid="tabcontent-events">
