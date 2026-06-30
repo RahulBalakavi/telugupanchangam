@@ -13,6 +13,12 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/today" component={Home} />
+      <Route path="/panchangam/:date" component={Home} />
+      <Route path="/festivals" component={Home} />
+      <Route path="/festivals/:slug" component={Home} />
+      <Route path="/vrathams" component={Home} />
+      <Route path="/vrathams/:slug" component={Home} />
       <Route component={NotFound} />
     </Switch>
   );
