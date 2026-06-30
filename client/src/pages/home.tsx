@@ -11,8 +11,13 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { TimezoneSelector, getStoredTimezone, setStoredTimezone } from "@/components/timezone-selector";
 import { LanguageSelector } from "@/components/language-selector";
 import { InstallBanner } from "@/components/install-banner";
+import { VrathamsList } from "@/components/vrathams-list";
+import { VrathamDetail } from "@/components/vratham-detail";
+import { FestivalBanner } from "@/components/festival-banner";
+import { FestivalDetail } from "@/components/festival-detail";
+import { vrathamForDate, vrathamBySlug, type Vratham } from "@/lib/vrathams";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Bell, Sparkles, LogOut, Settings } from "lucide-react";
+import { Calendar, Bell, Sparkles, LogOut, Settings, Flower2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -31,6 +36,8 @@ export default function Home() {
   const [modalOpen, setModalOpen] = useState(false);
   const [timezone, setTimezone] = useState(getStoredTimezone());
   const [activeTab, setActiveTab] = useState("calendar");
+  const [selectedVratham, setSelectedVratham] = useState<Vratham | null>(null);
+  const [selectedFestival, setSelectedFestival] = useState<Festival | null>(null);
   const [highlightedDate, setHighlightedDate] = useState<string | null>(null);
 
   const handleTimezoneChange = (newTimezone: string) => {
@@ -128,6 +135,31 @@ export default function Home() {
     setTimeout(() => setHighlightedDate(null), 4000);
   }, []);
 
+  // A vratham whose festival is today (drives the day-of banner).
+  const todayVratham = useMemo(() => {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    return vrathamForDate(todayStr);
+  }, []);
+
+  const openVratham = useCallback((v: Vratham) => {
+    setSelectedVratham(v);
+    setActiveTab("vrathams");
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
+  const openVrathamBySlug = useCallback((slug: string) => {
+    const v = vrathamBySlug(slug);
+    if (v) openVratham(v);
+  }, [openVratham]);
+
+  // Open a festival's detail page (the event page that links to its vratham).
+  const openFestival = useCallback((festival: Festival) => {
+    setSelectedFestival(festival);
+    setActiveTab("events");
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }, []);
+
   // Feed the day's real sunrise/sunset into the theme so auto mode flips at
   // the actual local horizon rather than a fixed 6am–6pm window.
   useEffect(() => {
@@ -203,11 +235,12 @@ export default function Home() {
       </header>
 
       <main className="container mx-auto px-4 pt-6 pb-28 md:pb-6">
+        {todayVratham && <FestivalBanner vratham={todayVratham} onOpen={openVratham} />}
         <InstallBanner />
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           {/* Desktop: centered top tabs. Mobile: fixed bottom icon nav. */}
           <TabsList
-            className="fixed inset-x-0 bottom-0 z-50 grid h-16 grid-cols-3 rounded-none border-t bg-background/95 p-0 backdrop-blur pb-[env(safe-area-inset-bottom)] md:static md:mx-auto md:h-10 md:w-full md:max-w-md md:rounded-md md:border-0 md:bg-muted md:p-1"
+            className="fixed inset-x-0 bottom-0 z-50 grid h-16 grid-cols-4 rounded-none border-t bg-background/95 p-0 backdrop-blur pb-[env(safe-area-inset-bottom)] md:static md:mx-auto md:h-10 md:w-full md:max-w-lg md:rounded-md md:border-0 md:bg-muted md:p-1"
             data-testid="tabs-main"
           >
             <TabsTrigger
@@ -225,6 +258,14 @@ export default function Home() {
             >
               <Sparkles className="h-5 w-5 md:h-4 md:w-4" />
               <span className="text-[10px] leading-none md:text-sm">{t("పండుగలు", "Events")}</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="vrathams"
+              className="h-full flex-col gap-1 rounded-none data-[state=active]:bg-transparent data-[state=active]:text-primary data-[state=active]:shadow-none md:h-auto md:flex-row md:gap-2 md:rounded-sm md:data-[state=active]:bg-background md:data-[state=active]:text-foreground md:data-[state=active]:shadow-sm"
+              data-testid="tab-vrathams"
+            >
+              <Flower2 className="h-5 w-5 md:h-4 md:w-4" />
+              <span className="text-[10px] leading-none md:text-sm">{t("వ్రతాలు", "Vrathams")}</span>
             </TabsTrigger>
             <TabsTrigger
               value="settings"
@@ -256,7 +297,7 @@ export default function Home() {
                   festivals={upcomingFestivals || []}
                   title={t("రాబోయే పండుగలు", "Upcoming Festivals")}
                   isLoading={loadingFestivals}
-                  onFestivalClick={navigateToFestival}
+                  onFestivalClick={openFestival}
                 />
               </div>
             </div>
@@ -265,16 +306,33 @@ export default function Home() {
           </TabsContent>
 
           <TabsContent value="events" className="space-y-6" data-testid="tabcontent-events">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <FestivalsList
-                festivals={allFestivals || []}
-                title={t("అన్ని పండుగలు", "All Festivals")}
-                isLoading={loadingAllFestivals}
-                showPast
-                onFestivalClick={navigateToFestival}
+            {selectedFestival ? (
+              <FestivalDetail
+                festival={selectedFestival}
+                onBack={() => setSelectedFestival(null)}
+                onOpenVratham={openVrathamBySlug}
+                onViewInCalendar={navigateToFestival}
               />
-              <TempleEvents events={upcomingEvents || []} isLoading={loadingEvents} />
-            </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <FestivalsList
+                  festivals={allFestivals || []}
+                  title={t("అన్ని పండుగలు", "All Festivals")}
+                  isLoading={loadingAllFestivals}
+                  showPast
+                  onFestivalClick={openFestival}
+                />
+                <TempleEvents events={upcomingEvents || []} isLoading={loadingEvents} />
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="vrathams" data-testid="tabcontent-vrathams">
+            {selectedVratham ? (
+              <VrathamDetail vratham={selectedVratham} onBack={() => setSelectedVratham(null)} />
+            ) : (
+              <VrathamsList onSelect={openVratham} />
+            )}
           </TabsContent>
 
           <TabsContent value="settings" className="max-w-lg mx-auto space-y-6" data-testid="tabcontent-settings">

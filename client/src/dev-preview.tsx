@@ -41,10 +41,10 @@ const basePanchang: PanchangData = {
 const tithiNames = ["పాడ్యమి","విదియ","తదియ","చవితి","పంచమి","షష్ఠి","సప్తమి","అష్టమి","నవమి","దశమి","ఏకాదశి","ద్వాదశి","త్రయోదశి","చతుర్దశి","పౌర్ణమి","పాడ్యమి","విదియ","తదియ","చవితి","పంచమి","షష్ఠి","సప్తమి","అష్టమి","నవమి","దశమి","ఏకాదశి","ద్వాదశి","త్రయోదశి","చతుర్దశి","అమావాస్య"];
 
 const festivals: Festival[] = [
-  { id: "1", name: "Varalakshmi Vratam", nameTelugu: "వరలక్ష్మీ వ్రతం", date: "2026-08-08", description: "Worship of Goddess Lakshmi for prosperity and well-being.", descriptionTelugu: "సంపద కోసం లక్ష్మీ దేవి ఆరాధన.", type: "major" },
-  { id: "2", name: "Vinayaka Chavithi", nameTelugu: "వినాయక చవితి", date: "2026-08-27", description: "Birth of Lord Ganesha, the remover of obstacles.", descriptionTelugu: "విఘ్నేశ్వరుని జన్మదినం.", type: "major" },
-  { id: "3", name: "Dussehra", nameTelugu: "విజయదశమి", date: "2026-10-01", description: "Celebrates the victory of good over evil.", descriptionTelugu: "చెడుపై మంచి విజయాన్ని జరుపుకుంటారు.", type: "major" },
-  { id: "4", name: "Deepavali", nameTelugu: "దీపావళి", date: "2026-10-20", description: "The festival of lights.", descriptionTelugu: "దీపాల పండుగ.", type: "major" },
+  { id: "varalakshmi-vratam-2026", name: "Varalakshmi Vratam", nameTelugu: "వరలక్ష్మీ వ్రతం", date: "2026-08-08", description: "Worship of Goddess Lakshmi for prosperity and well-being.", descriptionTelugu: "సంపద కోసం లక్ష్మీ దేవి ఆరాధన.", type: "major" },
+  { id: "vinayaka-chavithi-2026", name: "Vinayaka Chavithi", nameTelugu: "వినాయక చవితి", date: "2026-08-27", description: "Birth of Lord Ganesha, the remover of obstacles.", descriptionTelugu: "విఘ్నేశ్వరుని జన్మదినం.", type: "major" },
+  { id: "dussehra-2026", name: "Dussehra", nameTelugu: "విజయదశమి", date: "2026-10-01", description: "Celebrates the victory of good over evil.", descriptionTelugu: "చెడుపై మంచి విజయాన్ని జరుపుకుంటారు.", type: "major" },
+  { id: "deepavali-2026", name: "Deepavali", nameTelugu: "దీపావళి", date: "2026-10-20", description: "The festival of lights.", descriptionTelugu: "దీపాల పండుగ.", type: "major" },
 ];
 
 const templeEvents: TempleEvent[] = [
