@@ -149,7 +149,22 @@ export async function registerRoutes(
       );
       res.json({ reply });
     } catch (error) {
-      console.error("Chat error:", error);
+      // Surface the cause (status/type) in logs without leaking secrets, and
+      // map known failures to clearer client messages.
+      const status = (error as { status?: number })?.status;
+      const name = (error as { name?: string })?.name;
+      console.error("Chat error:", name, "status:", status, "-", (error as Error)?.message);
+      if (status === 401 || status === 403) {
+        return res.status(503).json({
+          error:
+            "The assistant is unavailable — the server's AI API key is invalid or unauthorized. Please check ANTHROPIC_API_KEY.",
+        });
+      }
+      if (status === 429) {
+        return res.status(429).json({
+          error: "The assistant is busy right now. Please try again in a moment.",
+        });
+      }
       res.status(500).json({ error: "Failed to generate a response." });
     }
   });
