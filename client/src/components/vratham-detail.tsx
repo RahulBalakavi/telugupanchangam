@@ -134,6 +134,7 @@ export function VrathamDetail({ vratham: v, onBack }: VrathamDetailProps) {
                 src={v.deckUrl}
                 title={`${v.nameEn} — guided puja`}
                 className="w-full h-full"
+                allowFullScreen
                 allow="autoplay; fullscreen; encrypted-media"
                 data-testid={`iframe-deck-${v.slug}`}
               />
