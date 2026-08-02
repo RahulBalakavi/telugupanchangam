@@ -560,6 +560,48 @@ export function injectSeo(template: string, meta: PageMeta): string {
     /<meta\s+property=["']og:url["'][^>]*>/i,
     `<meta property="og:url" content="${esc(canonical)}" />`,
   );
+  // og:image — always the shared 1200×630 card (same for all pages)
+  html = replaceOrInsert(
+    html,
+    /<meta\s+property=["']og:image["'][^>]*>/i,
+    `<meta property="og:image" content="${SITE}/og-image.png" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+property=["']og:image:width["'][^>]*>/i,
+    `<meta property="og:image:width" content="1200" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+property=["']og:image:height["'][^>]*>/i,
+    `<meta property="og:image:height" content="630" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+property=["']og:image:alt["'][^>]*>/i,
+    `<meta property="og:image:alt" content="${esc(meta.description)}" />`,
+  );
+  // Twitter card
+  html = replaceOrInsert(
+    html,
+    /<meta\s+name=["']twitter:card["'][^>]*>/i,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+name=["']twitter:image["'][^>]*>/i,
+    `<meta name="twitter:image" content="${SITE}/og-image.png" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+name=["']twitter:title["'][^>]*>/i,
+    `<meta name="twitter:title" content="${esc(meta.title)}" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+name=["']twitter:description["'][^>]*>/i,
+    `<meta name="twitter:description" content="${esc(meta.description)}" />`,
+  );
 
   // JSON-LD before </head>
   const ld = meta.jsonLd.map(jsonLdTag).join("\n");
