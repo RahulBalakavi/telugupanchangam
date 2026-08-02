@@ -361,6 +361,9 @@ function festivalPage(slug: string): PageMeta | null {
         description: f.description,
         image: festivalImage(f.id),
         url: abs(`/festivals/${f.id}`),
+        dateModified: new Date().toISOString().slice(0, 10),
+        datePublished: new Date().toISOString().slice(0, 10),
+        organizer: { "@id": "https://mytelugupanchangam.space/#organization" },
         location: {
           "@type": "Place",
           name: "India",
@@ -465,6 +468,9 @@ function vrathamPage(slug: string): PageMeta | null {
         "@type": "HowTo",
         name: `How to perform ${v.nameEn}`,
         description: v.aboutEn[0],
+        dateModified: new Date().toISOString().slice(0, 10),
+        datePublished: new Date().toISOString().slice(0, 10),
+        publisher: { "@id": "https://mytelugupanchangam.space/#organization" },
         supply: supplies.map((s) => ({ "@type": "HowToSupply", name: s })),
         step: [
           { "@type": "HowToStep", name: "When to perform", text: v.whenEn },
