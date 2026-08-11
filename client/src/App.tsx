@@ -8,6 +8,7 @@ import { IOSInstallPrompt } from "@/components/ios-install-prompt";
 import { LanguageContext, useLanguageProvider } from "@/hooks/use-language";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import EclipsesPage from "@/pages/eclipses";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <Route path="/festivals/:slug" component={Home} />
       <Route path="/vrathams" component={Home} />
       <Route path="/vrathams/:slug" component={Home} />
+      <Route path="/eclipses" component={EclipsesPage} />
       <Route component={NotFound} />
     </Switch>
   );
