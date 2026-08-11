@@ -365,6 +365,41 @@
     text-transform: uppercase;
     color: hsl(var(--gold-deep));
   }
+
+  .eclipse-hero {
+    background:
+      radial-gradient(circle at 74% 18%, hsl(var(--gold) / .16), transparent 24%),
+      radial-gradient(circle at 20% 80%, hsl(var(--saffron) / .1), transparent 28%),
+      linear-gradient(135deg, hsl(228 42% 10%), hsl(232 38% 16%) 52%, hsl(29 38% 17%));
+    border: 1px solid hsl(var(--gold) / .28);
+    box-shadow: 0 28px 80px -44px hsl(var(--gold) / .65);
+  }
+
+  .eclipse-orbit {
+    animation: eclipse-drift 8s ease-in-out infinite;
+    transform-origin: center;
+  }
+  .eclipse-pulse {
+    animation: eclipse-pulse 3.8s ease-in-out infinite;
+  }
+  .eclipse-stars {
+    background-image:
+      radial-gradient(1px 1px at 12% 22%, hsl(var(--gold) / .7), transparent),
+      radial-gradient(1px 1px at 84% 18%, hsl(var(--gold) / .5), transparent),
+      radial-gradient(1px 1px at 62% 74%, hsl(var(--gold) / .5), transparent),
+      radial-gradient(1px 1px at 30% 84%, hsl(var(--gold) / .4), transparent);
+  }
+  @keyframes eclipse-drift {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50% { transform: translateY(-5px) rotate(1deg); }
+  }
+  @keyframes eclipse-pulse {
+    0%, 100% { opacity: .72; transform: scale(.96); }
+    50% { opacity: 1; transform: scale(1.04); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .eclipse-orbit, .eclipse-pulse { animation: none; }
+  }
 }
 
 /**
