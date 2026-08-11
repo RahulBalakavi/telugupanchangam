@@ -287,4 +287,27 @@ export function isValidTimezone(tz: string): boolean {
   }
 }
 
+/**
+ * Returns a map of local date (YYYY-MM-DD in `timezone`) to eclipses peaking
+ * on that date, covering the given calendar month. Used to mark eclipse days
+ * on the monthly calendar.
+ */
+export function getEclipsesForMonth(
+  year: number,
+  month: number, // 0-based
+  timezone: string,
+): Map<string, EclipseEvent[]> {
+  // Search from a week before the month starts; 6 events comfortably covers
+  // any month plus the surrounding grid days shown in the calendar.
+  const from = new Date(Date.UTC(year, month, 1, 0, 0, 0) - 7 * 86400_000);
+  const events = getUpcomingEclipses(timezone, 6, from);
+  const map = new Map<string, EclipseEvent[]>();
+  for (const e of events) {
+    const list = map.get(e.dateLocal) || [];
+    list.push(e);
+    map.set(e.dateLocal, list);
+  }
+  return map;
+}
+
 export { getTimezoneCoordinates };

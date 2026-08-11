@@ -13,14 +13,14 @@ import {
   getUpcomingTempleEvents,
   getTempleEventsForDate,
 } from "./data";
-import { notificationPreferenceSchema } from "@shared/schema";
+import { notificationPreferenceSchema, type CalendarDay } from "@shared/schema";
 import {
   runChat,
   isChatConfigured,
   ChatUnavailableError,
   type ChatMessage,
 } from "./chat";
-import { getUpcomingEclipses, getLocalEclipseVisibility, isValidTimezone } from "./eclipse";
+import { getUpcomingEclipses, getLocalEclipseVisibility, getEclipsesForMonth, isValidTimezone } from "./eclipse";
 import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { storage } from "./storage";
 import { getVapidPublicKey, startNotificationScheduler, sendNotificationToUser } from "./push-service";
@@ -106,11 +106,26 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid year or month" });
       }
       
-      const days = getCalendarDays(year, month, timezone);
+      const days = getCalendarDays(year, month, timezone) as CalendarDay[];
+      const eclipsesByDate = getEclipsesForMonth(year, month, timezone);
+      const localDateKey = (d: Date) =>
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
+        }).format(d);
       
       days.forEach((day) => {
         day.festivals = getFestivalsForDate(day.date);
         day.templeEvents = getTempleEventsForDate(day.date);
+        const dayEclipses = eclipsesByDate.get(localDateKey(day.date));
+        if (dayEclipses?.length) {
+          day.eclipses = dayEclipses.map((e) => ({
+            type: e.type,
+            kind: e.kind,
+            peakLocal: e.peakLocal,
+            nakshatra: e.nakshatra.name,
+            nakshatraTelugu: e.nakshatra.nameTelugu,
+          }));
+        }
       });
       
       const festivals = getUpcomingFestivals(5);
