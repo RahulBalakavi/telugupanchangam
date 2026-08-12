@@ -1,6 +1,7 @@
 import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { initFwHarness } from "./fireweave/fw-harness";
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
@@ -14,4 +15,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-createRoot(document.getElementById("root")!).render(<App />);
+(async () => {
+  await initFwHarness();
+  createRoot(document.getElementById("root")!).render(<App />);
+})();
