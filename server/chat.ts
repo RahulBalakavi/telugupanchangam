@@ -28,9 +28,8 @@ export interface ChatMessage {
   content: string;
 }
 
-// Prefer Replit-managed AI billing (no separate Anthropic account / credits
-// needed) when its env vars are present; fall back to a direct ANTHROPIC_API_KEY
-// if someone wants to use their own Anthropic account instead.
+// A plain Anthropic API key. AI_INTEGRATIONS_* is still honoured so a
+// gateway/proxy can be pointed at instead, but nothing sets it by default.
 function getConfig(): { apiKey: string; baseURL?: string } | null {
   const integrationKey = process.env.AI_INTEGRATIONS_ANTHROPIC_API_KEY;
   const integrationBaseURL = process.env.AI_INTEGRATIONS_ANTHROPIC_BASE_URL;

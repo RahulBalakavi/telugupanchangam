@@ -156,9 +156,8 @@ Required environment variables (set in the Render dashboard, see `.env.example`)
 | `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` | Must stay the same forever — changing them silently invalidates every existing push subscription |
 | `VAPID_SUBJECT` | `mailto:` contact for push services |
 
-Schema changes go through `npm run db:push` (drizzle-kit) against `DATABASE_URL`.
-The one hand-written migration in `migrations/` documents the move off
-per-user accounts to device-scoped notifications.
+Schema changes go through `npm run db:push` (drizzle-kit) against
+`DATABASE_URL`, which is also how the two tables were created on Neon.
 
 The domain `mytelugupanchangam.space` is registered at Namecheap; its A record
 points at the Render service. `server/seo.ts` hardcodes that host as the

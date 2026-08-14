@@ -3,7 +3,7 @@
  *
  * Renders the REAL <App/> (home page, tabs, modal, settings — everything) with
  * the network mocked, so the UI can be previewed without the Express server,
- * Postgres, or Replit/Google auth.
+ * Postgres.
  *
  *   npx vite                      # then open http://localhost:5173/preview.html
  *
