@@ -156,6 +156,14 @@ export const notificationPreferenceSchema = z.object({
 
 export type InsertNotificationPreference = z.infer<typeof notificationPreferenceSchema>;
 
+export interface CalendarDayEclipse {
+  type: "solar" | "lunar";
+  kind: string; // total | annular | partial | penumbral
+  peakLocal: string;
+  nakshatra: string;
+  nakshatraTelugu: string;
+}
+
 export interface CalendarDay {
   date: Date;
   isCurrentMonth: boolean;
@@ -163,5 +171,6 @@ export interface CalendarDay {
   panchang?: PanchangData;
   festivals: Festival[];
   templeEvents: TempleEvent[];
+  eclipses?: CalendarDayEclipse[];
 }
 

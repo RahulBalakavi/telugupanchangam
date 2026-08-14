@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -188,6 +188,26 @@ export function CalendarGrid({
                         "w-1.5 h-1.5 rounded-full",
                         day.isToday ? "bg-primary-foreground" : "bg-primary shadow-[0_0_6px_hsl(var(--saffron))]"
                       )} />
+                    </div>
+                  )}
+
+                  {day.eclipses && day.eclipses.length > 0 && (
+                    <div
+                      className="absolute top-1 right-1"
+                      data-testid={`eclipse-marker-${day.date.toISOString().split("T")[0]}`}
+                      title={day.eclipses[0].type === "solar" ? "Solar Eclipse" : "Lunar Eclipse"}
+                    >
+                      {day.eclipses[0].type === "solar" ? (
+                        <Sun className={cn(
+                          "h-3 w-3 md:h-3.5 md:w-3.5",
+                          day.isToday ? "text-primary-foreground" : "text-orange-500"
+                        )} />
+                      ) : (
+                        <Moon className={cn(
+                          "h-3 w-3 md:h-3.5 md:w-3.5",
+                          day.isToday ? "text-primary-foreground" : "text-indigo-500 dark:text-indigo-400"
+                        )} />
+                      )}
                     </div>
                   )}
                 </div>

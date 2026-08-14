@@ -361,6 +361,9 @@ function festivalPage(slug: string): PageMeta | null {
         description: f.description,
         image: festivalImage(f.id),
         url: abs(`/festivals/${f.id}`),
+        dateModified: new Date().toISOString().slice(0, 10),
+        datePublished: new Date().toISOString().slice(0, 10),
+        organizer: { "@id": "https://mytelugupanchangam.space/#organization" },
         location: {
           "@type": "Place",
           name: "India",
@@ -465,6 +468,9 @@ function vrathamPage(slug: string): PageMeta | null {
         "@type": "HowTo",
         name: `How to perform ${v.nameEn}`,
         description: v.aboutEn[0],
+        dateModified: new Date().toISOString().slice(0, 10),
+        datePublished: new Date().toISOString().slice(0, 10),
+        publisher: { "@id": "https://mytelugupanchangam.space/#organization" },
         supply: supplies.map((s) => ({ "@type": "HowToSupply", name: s })),
         step: [
           { "@type": "HowToStep", name: "When to perform", text: v.whenEn },
@@ -553,6 +559,48 @@ export function injectSeo(template: string, meta: PageMeta): string {
     html,
     /<meta\s+property=["']og:url["'][^>]*>/i,
     `<meta property="og:url" content="${esc(canonical)}" />`,
+  );
+  // og:image — always the shared 1200×630 card (same for all pages)
+  html = replaceOrInsert(
+    html,
+    /<meta\s+property=["']og:image["'][^>]*>/i,
+    `<meta property="og:image" content="${SITE}/og-image.png" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+property=["']og:image:width["'][^>]*>/i,
+    `<meta property="og:image:width" content="1200" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+property=["']og:image:height["'][^>]*>/i,
+    `<meta property="og:image:height" content="630" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+property=["']og:image:alt["'][^>]*>/i,
+    `<meta property="og:image:alt" content="${esc(meta.description)}" />`,
+  );
+  // Twitter card
+  html = replaceOrInsert(
+    html,
+    /<meta\s+name=["']twitter:card["'][^>]*>/i,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+name=["']twitter:image["'][^>]*>/i,
+    `<meta name="twitter:image" content="${SITE}/og-image.png" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+name=["']twitter:title["'][^>]*>/i,
+    `<meta name="twitter:title" content="${esc(meta.title)}" />`,
+  );
+  html = replaceOrInsert(
+    html,
+    /<meta\s+name=["']twitter:description["'][^>]*>/i,
+    `<meta name="twitter:description" content="${esc(meta.description)}" />`,
   );
 
   // JSON-LD before </head>

@@ -13,13 +13,14 @@ import {
   getUpcomingTempleEvents,
   getTempleEventsForDate,
 } from "./data";
-import { notificationPreferenceSchema } from "@shared/schema";
+import { notificationPreferenceSchema, type CalendarDay } from "@shared/schema";
 import {
   runChat,
   isChatConfigured,
   ChatUnavailableError,
   type ChatMessage,
 } from "./chat";
+import { getUpcomingEclipses, getLocalEclipseVisibility, getEclipsesForMonth, isValidTimezone } from "./eclipse";
 import { storage } from "./storage";
 import { getVapidPublicKey, startNotificationScheduler, sendNotificationToDevice } from "./push-service";
 
@@ -43,6 +44,47 @@ export async function registerRoutes(
     const today = getTodayInTimezone(timezone);
     const panchang = getPanchangForDate(today, timezone);
     res.json(panchang);
+  });
+
+  app.get("/api/eclipses", (req, res) => {
+    try {
+      const timezone = (req.query.timezone as string) || "Asia/Kolkata";
+      if (!isValidTimezone(timezone)) {
+        return res.status(400).json({ error: "Invalid timezone" });
+      }
+      const eclipses = getUpcomingEclipses(timezone, 8);
+      res.json({ eclipses });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to compute eclipses" });
+    }
+  });
+
+  app.get("/api/eclipses/visibility", (req, res) => {
+    try {
+      const schema = z.object({
+        type: z.enum(["solar", "lunar"]),
+        peakUtc: z.string().refine((s) => !isNaN(Date.parse(s)), "Invalid date"),
+        lat: z.coerce.number().finite().min(-90).max(90),
+        lon: z.coerce.number().finite().min(-180).max(180),
+        timezone: z.string().default("Asia/Kolkata").refine(isValidTimezone, "Invalid timezone"),
+      });
+      const parsed = schema.safeParse(req.query);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid parameters" });
+      }
+      const { type, peakUtc, lat, lon, timezone } = parsed.data;
+      // Bound the search to a sane window (past year through +10 years) so the
+      // endpoint can't be used to run unbounded astronomy searches.
+      const peakMs = Date.parse(peakUtc);
+      const now = Date.now();
+      if (peakMs < now - 366 * 86400_000 || peakMs > now + 3660 * 86400_000) {
+        return res.status(400).json({ error: "Eclipse date out of range" });
+      }
+      const visibility = getLocalEclipseVisibility(type, new Date(peakUtc), lat, lon, timezone);
+      res.json(visibility);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to compute eclipse visibility" });
+    }
   });
 
   app.get("/api/panchang/:date", (req, res) => {
@@ -71,11 +113,26 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid year or month" });
       }
       
-      const days = getCalendarDays(year, month, timezone);
+      const days = getCalendarDays(year, month, timezone) as CalendarDay[];
+      const eclipsesByDate = getEclipsesForMonth(year, month, timezone);
+      const localDateKey = (d: Date) =>
+        new Intl.DateTimeFormat("en-CA", {
+          timeZone: timezone, year: "numeric", month: "2-digit", day: "2-digit",
+        }).format(d);
       
       days.forEach((day) => {
         day.festivals = getFestivalsForDate(day.date);
         day.templeEvents = getTempleEventsForDate(day.date);
+        const dayEclipses = eclipsesByDate.get(localDateKey(day.date));
+        if (dayEclipses?.length) {
+          day.eclipses = dayEclipses.map((e) => ({
+            type: e.type,
+            kind: e.kind,
+            peakLocal: e.peakLocal,
+            nakshatra: e.nakshatra.name,
+            nakshatraTelugu: e.nakshatra.nameTelugu,
+          }));
+        }
       });
       
       const festivals = getUpcomingFestivals(5);

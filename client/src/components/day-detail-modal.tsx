@@ -8,7 +8,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { MoonPhase } from "./moon-phase";
-import { Calendar, Moon, Star, Sunrise, Sunset, MapPin } from "lucide-react";
+import { Calendar, Moon, Star, Sunrise, Sunset, MapPin, Sun, ExternalLink } from "lucide-react";
+import { Link } from "wouter";
 import type { CalendarDay } from "@shared/schema";
 import { useLanguage } from "@/hooks/use-language";
 
@@ -23,7 +24,18 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
   
   if (!day) return null;
 
-  const { panchang, festivals, templeEvents } = day;
+  const { panchang, festivals, templeEvents, eclipses } = day;
+
+  const eclipseKindLabel = (kind: string) => {
+    const map: Record<string, { te: string; en: string }> = {
+      total: { te: "సంపూర్ణ", en: "Total" },
+      annular: { te: "వలయాకార", en: "Annular" },
+      partial: { te: "పాక్షిక", en: "Partial" },
+      penumbral: { te: "ఛాయా", en: "Penumbral" },
+    };
+    const m = map[kind];
+    return m ? t(m.te, m.en) : kind;
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -139,6 +151,57 @@ export function DayDetailModal({ day, open, onOpenChange }: DayDetailModalProps)
                 </div>
               </div>
             </div>
+          )}
+
+          {eclipses && eclipses.length > 0 && (
+            <>
+              <Separator />
+              <div className="space-y-3">
+                <h3 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                  {t("గ్రహణం", "Eclipse")}
+                </h3>
+                {eclipses.map((eclipse, i) => (
+                  <div
+                    key={i}
+                    className="p-3 rounded-md bg-muted/50"
+                    data-testid={`modal-eclipse-${eclipse.type}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        {eclipse.type === "solar" ? (
+                          <Sun className="h-4 w-4 text-orange-500" />
+                        ) : (
+                          <Moon className="h-4 w-4 text-indigo-500 dark:text-indigo-400" />
+                        )}
+                        <h4 className="font-medium">
+                          {eclipseKindLabel(eclipse.kind)}{" "}
+                          {eclipse.type === "solar"
+                            ? t("సూర్యగ్రహణం", "Solar Eclipse")
+                            : t("చంద్రగ్రహణం", "Lunar Eclipse")}
+                        </h4>
+                      </div>
+                    </div>
+                    <p className="text-sm mt-2 text-muted-foreground">
+                      {t("గ్రహణ మధ్యకాలం: ", "Peak: ")}
+                      <span className="text-foreground font-medium">{eclipse.peakLocal}</span>
+                      {" · "}
+                      {t("నక్షత్రం: ", "Nakshatra: ")}
+                      <span className="text-foreground font-medium">
+                        {language === "telugu" ? eclipse.nakshatraTelugu : eclipse.nakshatra}
+                      </span>
+                    </p>
+                    <Link
+                      href="/eclipses"
+                      className="inline-flex items-center gap-1 text-sm text-primary mt-2 hover:underline"
+                      data-testid="link-eclipse-details"
+                    >
+                      {t("వివరాలు, ప్రభావిత నక్షత్రాలు, పరిహారాలు", "Visibility, affected stars & remedies")}
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
 
           {festivals.length > 0 && (

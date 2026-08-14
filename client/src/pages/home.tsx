@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
-import { useRoute } from "wouter";
+import { useRoute, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { TodayPanchang } from "@/components/today-panchang";
 import { Sankalpam } from "@/components/sankalpam";
@@ -19,7 +19,8 @@ import { FestivalDetail } from "@/components/festival-detail";
 import { ChatWidget } from "@/components/chat-widget";
 import { vrathamForDate, vrathamBySlug, type Vratham } from "@/lib/vrathams";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Sparkles, Settings, Flower2 } from "lucide-react";
+import { Calendar, Sparkles, Settings, Flower2, Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/lib/theme-provider";
@@ -224,6 +225,15 @@ export default function Home() {
             </div>
           </div>
           <div className="flex items-center gap-3 flex-wrap">
+            <Link href="/eclipses">
+              <Button variant="ghost" size="sm" className="gap-1.5" data-testid="button-eclipses">
+                <span className="relative inline-block">
+                  <Sun className="h-4 w-4 text-orange-500" />
+                  <Moon className="h-2.5 w-2.5 text-indigo-500 absolute -bottom-0.5 -right-0.5" />
+                </span>
+                <span className="hidden sm:inline">{t("గ్రహణాలు", "Eclipses")}</span>
+              </Button>
+            </Link>
             <div className="hidden sm:block">
               <TimezoneSelector value={timezone} onChange={handleTimezoneChange} />
             </div>
