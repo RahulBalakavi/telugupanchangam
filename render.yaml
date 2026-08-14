@@ -1,0 +1,34 @@
+# Render blueprint. Create the service via Render's "New > Blueprint" flow
+# pointed at this repo, or configure a Web Service by hand with the same
+# build/start commands.
+#
+# DATABASE_URL points at Neon (external), so no database block here.
+services:
+  - type: web
+    name: telugu-panchangam
+    runtime: node
+    plan: starter # $7/mo; "free" spins down after inactivity, which stops the
+                  # in-process notification scheduler (server/push-service.ts).
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/panchang/today
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "20"
+      # Set these in the Render dashboard (marked sync:false so they are never
+      # committed): copy VAPID_* verbatim from Replit Secrets or every existing
+      # push subscriber silently stops receiving notifications.
+      - key: DATABASE_URL
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: VAPID_SUBJECT
+        value: mailto:panchangam@mytelugupanchangam.space

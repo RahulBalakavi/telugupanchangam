@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export * from "./models/auth";
+export * from "./models/notifications";
 
 export const tithiNames = [
   "Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami",

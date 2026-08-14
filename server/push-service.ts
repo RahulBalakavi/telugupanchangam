@@ -4,7 +4,7 @@ import { getPanchangForDate } from "./panchang";
 
 const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY;
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:panchangam@replit.app";
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || "mailto:panchangam@mytelugupanchangam.space";
 
 if (VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
@@ -55,11 +55,11 @@ export async function sendPushNotification(
   }
 }
 
-export async function sendNotificationToUser(
-  userId: string,
+export async function sendNotificationToDevice(
+  deviceId: string,
   payload: PushPayload
 ): Promise<number> {
-  const subscriptions = await storage.getPushSubscriptionsByUserId(userId);
+  const subscriptions = await storage.getPushSubscriptionsByDeviceId(deviceId);
   let sentCount = 0;
   
   for (const sub of subscriptions) {
@@ -189,8 +189,8 @@ export async function checkAndSendNotifications(): Promise<void> {
           },
         };
         
-        const sentCount = await sendNotificationToUser(prefs.userId, payload);
-        console.log(`Sent ${sentCount} notifications to user ${prefs.userId} for ${tithiName}`);
+        const sentCount = await sendNotificationToDevice(prefs.deviceId, payload);
+        console.log(`Sent ${sentCount} notifications to device ${prefs.deviceId} for ${tithiName}`);
       }
     }
   }

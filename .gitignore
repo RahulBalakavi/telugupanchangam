@@ -6,4 +6,3 @@ vite.config.ts.*
 *.tar.gz
 api_key
 .env
-.fireweave/.cache/

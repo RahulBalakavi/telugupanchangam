@@ -1,4 +1,11 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { getDeviceId } from "./device-id";
+
+// Sent on every same-origin API call; the notification routes use it in place
+// of a logged-in user. See client/src/lib/device-id.ts.
+function deviceHeaders(): Record<string, string> {
+  return { "X-Device-Id": getDeviceId() };
+}
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -14,7 +21,10 @@ export async function apiRequest(
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers: {
+      ...deviceHeaders(),
+      ...(data ? { "Content-Type": "application/json" } : {}),
+    },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -30,6 +40,7 @@ export const getQueryFn: <T>(options: {
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
     const res = await fetch(queryKey.join("/") as string, {
+      headers: deviceHeaders(),
       credentials: "include",
     });
 

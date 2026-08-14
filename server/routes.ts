@@ -20,17 +20,24 @@ import {
   ChatUnavailableError,
   type ChatMessage,
 } from "./chat";
-import { setupAuth, registerAuthRoutes, isAuthenticated } from "./replit_integrations/auth";
 import { storage } from "./storage";
-import { getVapidPublicKey, startNotificationScheduler, sendNotificationToUser } from "./push-service";
+import { getVapidPublicKey, startNotificationScheduler, sendNotificationToDevice } from "./push-service";
+
+// The app has no accounts; notification state is keyed to an opaque device id
+// the client mints once and keeps in localStorage. Only well-formed ids are
+// accepted so a caller can't use this as arbitrary key/value storage.
+const DEVICE_ID_RE = /^[A-Za-z0-9-]{16,64}$/;
+
+function getDeviceId(req: { header(name: string): string | undefined }): string | null {
+  const id = req.header("X-Device-Id");
+  return id && DEVICE_ID_RE.test(id) ? id : null;
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  await setupAuth(app);
-  registerAuthRoutes(app);
-  // Public API routes - no authentication required
+  // Public API routes
   app.get("/api/panchang/today", (req, res) => {
     const timezone = (req.query.timezone as string) || "Asia/Kolkata";
     const today = getTodayInTimezone(timezone);
@@ -167,15 +174,15 @@ export async function registerRoutes(
     }
   });
 
-  // Protected API routes - authentication required for notifications
+  // Notification routes - scoped to the calling device, no account needed
 
-  app.get("/api/notifications/preferences", isAuthenticated, async (req, res) => {
+  app.get("/api/notifications/preferences", async (req, res) => {
     try {
-      const userId = (req.user as { id: string })?.id;
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+      const deviceId = getDeviceId(req);
+      if (!deviceId) {
+        return res.status(400).json({ error: "Missing or invalid X-Device-Id header" });
       }
-      const prefs = await storage.getNotificationPreferences(userId);
+      const prefs = await storage.getNotificationPreferences(deviceId);
       if (prefs) {
         res.json(prefs);
       } else {
@@ -197,20 +204,20 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/notifications/preferences", isAuthenticated, async (req, res) => {
+  app.post("/api/notifications/preferences", async (req, res) => {
     try {
-      const userId = (req.user as { id: string })?.id;
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+      const deviceId = getDeviceId(req);
+      if (!deviceId) {
+        return res.status(400).json({ error: "Missing or invalid X-Device-Id header" });
       }
-      
+
       const parsed = notificationPreferenceSchema.safeParse(req.body);
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid preferences", details: parsed.error.errors });
       }
       
       const updated = await storage.saveNotificationPreferences({
-        userId,
+        deviceId,
         ...parsed.data,
       });
       res.json(updated);
@@ -220,7 +227,7 @@ export async function registerRoutes(
   });
 
   // Push notification endpoints
-  app.get("/api/push/vapid-public-key", isAuthenticated, (req, res) => {
+  app.get("/api/push/vapid-public-key", (req, res) => {
     res.json({ publicKey: getVapidPublicKey() });
   });
 
@@ -232,11 +239,11 @@ export async function registerRoutes(
     }),
   });
 
-  app.post("/api/push/subscribe", isAuthenticated, async (req, res) => {
+  app.post("/api/push/subscribe", async (req, res) => {
     try {
-      const userId = (req.user as { id: string })?.id;
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+      const deviceId = getDeviceId(req);
+      if (!deviceId) {
+        return res.status(400).json({ error: "Missing or invalid X-Device-Id header" });
       }
 
       const parsed = pushSubscriptionSchema.safeParse(req.body);
@@ -245,7 +252,7 @@ export async function registerRoutes(
       }
 
       const subscription = await storage.savePushSubscription({
-        userId,
+        deviceId,
         endpoint: parsed.data.endpoint,
         p256dh: parsed.data.keys.p256dh,
         auth: parsed.data.keys.auth,
@@ -258,33 +265,33 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/push/unsubscribe", isAuthenticated, async (req, res) => {
+  app.post("/api/push/unsubscribe", async (req, res) => {
     try {
-      const userId = (req.user as { id: string })?.id;
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+      const deviceId = getDeviceId(req);
+      if (!deviceId) {
+        return res.status(400).json({ error: "Missing or invalid X-Device-Id header" });
       }
-      
+
       const { endpoint } = req.body;
       if (!endpoint) {
         return res.status(400).json({ error: "Endpoint required" });
       }
 
-      await storage.deletePushSubscriptionForUser(userId, endpoint);
+      await storage.deletePushSubscriptionForDevice(deviceId, endpoint);
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to unsubscribe" });
     }
   });
 
-  app.post("/api/push/test", isAuthenticated, async (req, res) => {
+  app.post("/api/push/test", async (req, res) => {
     try {
-      const userId = (req.user as { id: string })?.id;
-      if (!userId) {
-        return res.status(401).json({ error: "Not authenticated" });
+      const deviceId = getDeviceId(req);
+      if (!deviceId) {
+        return res.status(400).json({ error: "Missing or invalid X-Device-Id header" });
       }
 
-      const sentCount = await sendNotificationToUser(userId, {
+      const sentCount = await sendNotificationToDevice(deviceId, {
         title: "🙏 తెలుగు పంచాంగం - Test",
         body: "This is a test notification. If you see this, push notifications are working!",
         icon: "/icon-192.png",

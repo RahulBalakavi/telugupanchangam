@@ -21,14 +21,6 @@ import type {
   NotificationPreference,
 } from "@shared/schema";
 
-const mockUser = {
-  id: "preview-user",
-  email: "preview@example.com",
-  firstName: "Preview",
-  lastName: "User",
-  profileImageUrl: null,
-};
-
 const basePanchang: PanchangData = {
   date: "2026-06-29", teluguDate: 5, teluguMonth: "ఆషాఢం", teluguMonthEnglish: "Ashadha",
   isAdhikaMasa: false, teluguYear: 1948, samvatsaraName: "Vishvavasu", samvatsaraNameTelugu: "విశ్వావసు",
@@ -111,7 +103,6 @@ window.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Res
       return jsonResponse({ ok: true });
     }
 
-    if (path === "/api/auth/user") return jsonResponse(mockUser);
     if (path.startsWith("/api/panchang/")) return jsonResponse({ ...basePanchang, timezone });
     if (path.startsWith("/api/calendar/")) {
       const m = path.match(/\/api\/calendar\/(\d+)\/(\d+)/);

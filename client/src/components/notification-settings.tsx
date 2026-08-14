@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Bell, BellOff, Clock, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getDeviceId } from "@/lib/device-id";
 import type { NotificationPreference } from "@shared/schema";
 
 interface NotificationSettingsProps {
@@ -33,7 +34,7 @@ async function subscribeToPush(): Promise<PushSubscription | null> {
     if (existingSubscription) {
       const subscribeResponse = await fetch("/api/push/subscribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Device-Id": getDeviceId() },
         body: JSON.stringify(existingSubscription.toJSON()),
       });
       if (subscribeResponse.ok) {
@@ -56,7 +57,7 @@ async function subscribeToPush(): Promise<PushSubscription | null> {
     
     const subscribeResponse = await fetch("/api/push/subscribe", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Device-Id": getDeviceId() },
       body: JSON.stringify(subscription.toJSON()),
     });
     
@@ -79,7 +80,7 @@ async function unsubscribeFromPush(): Promise<boolean> {
     if (subscription) {
       await fetch("/api/push/unsubscribe", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Device-Id": getDeviceId() },
         body: JSON.stringify({ endpoint: subscription.endpoint }),
       });
       
@@ -219,7 +220,7 @@ export function NotificationSettings({ preferences, onSave, isLoading }: Notific
     try {
       const response = await fetch("/api/push/test", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "X-Device-Id": getDeviceId() },
       });
       const result = await response.json();
       

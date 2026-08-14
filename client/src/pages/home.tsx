@@ -19,18 +19,14 @@ import { FestivalDetail } from "@/components/festival-detail";
 import { ChatWidget } from "@/components/chat-widget";
 import { vrathamForDate, vrathamBySlug, type Vratham } from "@/lib/vrathams";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Bell, Sparkles, LogOut, Settings, Flower2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Calendar, Sparkles, Settings, Flower2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAuth } from "@/hooks/use-auth";
 import { useLanguage } from "@/hooks/use-language";
 import { useTheme } from "@/lib/theme-provider";
 import type { CalendarDay, PanchangData, Festival, TempleEvent, NotificationPreference } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export default function Home() {
-  const { user } = useAuth();
   const { t } = useLanguage();
   const { setDaylight } = useTheme();
   const [currentMonth, setCurrentMonth] = useState(new Date());
@@ -231,26 +227,6 @@ export default function Home() {
             <div className="hidden sm:block">
               <TimezoneSelector value={timezone} onChange={handleTimezoneChange} />
             </div>
-            {user && (
-              <>
-                <div className="flex items-center gap-2">
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.profileImageUrl || undefined} alt={user.firstName || "User"} />
-                    <AvatarFallback>
-                      {user.firstName?.[0] || user.email?.[0] || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span className="text-sm hidden md:inline" data-testid="text-user-name">
-                    {user.firstName || user.email}
-                  </span>
-                </div>
-                <Button variant="ghost" size="icon" asChild data-testid="button-logout">
-                  <a href="/api/logout" title="Logout">
-                    <LogOut className="h-4 w-4" />
-                  </a>
-                </Button>
-              </>
-            )}
             <ThemeToggle />
           </div>
         </div>
@@ -390,41 +366,11 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            {user ? (
-              <NotificationSettings
-                preferences={preferences}
-                onSave={(prefs) => savePrefsMutation.mutate(prefs)}
-                isLoading={loadingPrefs || savePrefsMutation.isPending}
-              />
-            ) : (
-              <Card data-testid="card-login-prompt">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Bell className="h-5 w-5 text-primary" />
-                    {t("నోటిఫికేషన్లు", "Notifications")}
-                  </CardTitle>
-                  <CardDescription>
-                    {t(
-                      "ప్రత్యేక తిథులు మరియు పండుగల గురించి నోటిఫికేషన్లు పొందండి",
-                      "Get notifications about special tithis and festivals"
-                    )}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-muted-foreground mb-4">
-                    {t(
-                      "నోటిఫికేషన్లను ఎనేబుల్ చేయడానికి దయచేసి లాగిన్ అవ్వండి",
-                      "Please sign in with Google to enable push notifications for special days like Ekadashi, Chaturthi, and more."
-                    )}
-                  </p>
-                  <Button asChild data-testid="button-login-notifications">
-                    <a href="/api/login">
-                      {t("Google తో లాగిన్ అవ్వండి", "Sign in with Google")}
-                    </a>
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
+            <NotificationSettings
+              preferences={preferences}
+              onSave={(prefs) => savePrefsMutation.mutate(prefs)}
+              isLoading={loadingPrefs || savePrefsMutation.isPending}
+            />
           </TabsContent>
         </Tabs>
       </main>
