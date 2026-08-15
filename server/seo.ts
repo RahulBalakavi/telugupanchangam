@@ -313,10 +313,29 @@ function festivalPage(slug: string): PageMeta | null {
   const aboutTe = content?.aboutTe?.length ? content.aboutTe : [f.descriptionTelugu];
   const vrathamSlug = content?.vrathamSlug;
 
+  // Panchang details for the festival day (tithi window, nakshatra, sunrise) —
+  // the "what time" half of what people actually search for.
+  let dayLine = "";
+  try {
+    const p = getPanchangForDate(new Date(f.date + "T12:00:00Z"), TZ);
+    dayLine =
+      `On ${dateLabel} the tithi is ${p.tithi} (${p.paksha} paksha), ` +
+      `ending at ${p.tithiEndTime} IST; nakshatra ${p.nakshatra}; ` +
+      `sunrise ${p.sunrise}, sunset ${p.sunset} IST (${p.teluguMonthEnglish} masa, ${p.samvatsaraName} samvatsara).`;
+  } catch {
+    // panchang unavailable for this date — omit the line
+  }
+
+  // Other years of the same festival, for cross-linking (deepavali-2026 ↔ -2027).
+  const family = f.id.replace(/-\d{4}$/, "");
+  const otherYears = getAllFestivals().filter(
+    (o) => o.id !== f.id && o.id.replace(/-\d{4}$/, "") === family,
+  );
+
   const faq: { q: string; a: string }[] = [
     {
       q: `When is ${f.name} in ${year}?`,
-      a: `${f.name} (${f.nameTelugu}) in ${year} falls on ${dateLabel}.`,
+      a: `${f.name} (${f.nameTelugu}) in ${year} falls on ${dateLabel}.${dayLine ? " " + dayLine : ""}`,
     },
     { q: `What is ${f.name} and its significance?`, a: about[0] },
   ];
@@ -339,10 +358,12 @@ function festivalPage(slug: string): PageMeta | null {
   <nav aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/festivals">Festivals</a> › ${esc(f.name)}</nav>
   <h1>${esc(f.name)} ${esc(year)} — ${esc(f.nameTelugu)}</h1>
   <p><strong>Date:</strong> ${esc(dateLabel)}${f.relatedTithi ? ` · <strong>Tithi:</strong> ${esc(f.relatedTithi)}` : ""}</p>
+  ${dayLine ? `<p><strong>Panchangam for the day:</strong> ${esc(dayLine)}</p>` : ""}
   ${paragraphs(about)}
   <h2>తెలుగులో</h2>
   ${paragraphs(aboutTe)}
   ${vrathamSlug ? `<p><a href="/vrathams/${esc(vrathamSlug)}">How to perform the ${esc(f.name)} vratham (puja guide) →</a></p>` : ""}
+  ${otherYears.length ? `<p>${otherYears.map((o) => `<a href="/festivals/${esc(o.id)}">${esc(o.name)} ${esc(o.date.slice(0, 4))} (${esc(formatDate(o.date))}) →</a>`).join(" · ")}</p>` : ""}
   ${faqSection(faq)}
   ${relatedNav()}
 </main>`.trim();

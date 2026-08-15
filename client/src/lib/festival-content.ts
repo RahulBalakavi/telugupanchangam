@@ -34,10 +34,14 @@ const CONTENT: Record<string, FestivalContent> = {
     aboutEn: [
       "Vinayaka Chavithi celebrates the birth of Lord Ganesha, the remover of obstacles (Vighneshwara), worshipped first before any auspicious undertaking.",
       "A clay idol is installed and worshipped at home with 21 kinds of leaves and sweets like undrallu and kudumulu, and is immersed after the puja and the Vinayaka Vrata Katha.",
+      "The puja is traditionally performed during madhyahna (midday), when the Chaturthi tithi prevails; the ekavimsati patra puja uses 21 sacred leaves, each offered with a different name of Ganesha. Listening to the Vinayaka Vrata Katha at the end is considered essential — it absolves the doshamu of seeing the moon on Chavithi night.",
+      "In Telugu states the celebration runs from home pujas to grand community mandapams; Kanipakam Varasiddhi Vinayaka temple holds its famous Brahmotsavams during these days, and immersion (nimajjanam) processions close the festival on Anantha Chaturdashi.",
     ],
     aboutTe: [
       "వినాయక చవితి విఘ్నాలను తొలగించే విఘ్నేశ్వరుని జన్మదినం. ఏ శుభకార్యానికైనా ముందు మొదట పూజించే దేవుడు గణపతి.",
       "ఇంట్లో మట్టి విగ్రహాన్ని ప్రతిష్ఠించి 21 రకాల పత్రి, ఉండ్రాళ్ళు, కుడుములతో పూజించి, వ్రత కథ అనంతరం నిమజ్జనం చేస్తారు.",
+      "పూజ మధ్యాహ్న సమయంలో, చవితి తిథి ఉన్నప్పుడు చేయడం సంప్రదాయం. ఏకవింశతి పత్ర పూజలో 21 పత్రాలు గణపతి నామాలతో సమర్పిస్తారు. చివర వినాయక వ్రత కథ వినడం తప్పనిసరి — చవితి రాత్రి చంద్రుని చూసిన దోషం తొలగుతుందని విశ్వాసం.",
+      "తెలుగు రాష్ట్రాలలో ఇంటి పూజల నుండి పెద్ద మండపాల వరకు వేడుకలు జరుగుతాయి; కాణిపాకం వరసిద్ధి వినాయక ఆలయంలో బ్రహ్మోత్సవాలు ఈ రోజులలోనే జరుగుతాయి. అనంత చతుర్దశి నాడు నిమజ్జనంతో పండుగ ముగుస్తుంది.",
     ],
     vrathamSlug: "vinayaka",
   },
@@ -46,10 +50,14 @@ const CONTENT: Record<string, FestivalContent> = {
     aboutEn: [
       "Dussehra (Vijayadashami) marks the victory of good over evil — the triumph of Goddess Durga over Mahishasura and of Lord Rama over Ravana.",
       "It is celebrated as the most auspicious day to begin new ventures, learning and the worship of weapons and tools (Ayudha Puja).",
+      "Vijayadashami concludes the nine nights of Devi Navaratri. In the Telugu states, Vijayawada's Kanaka Durga temple celebrates Navaratri on a grand scale, homes display bommala koluvu (arranged dolls), and on Dashami people perform Shami puja and exchange shami (jammi) leaves as 'gold', seeking victory in their endeavours.",
+      "The aparahna (afternoon) period of Dashami is considered the vijaya muhurtam — traditionally the best time of the whole year to start education (aksharabhyasam), new business, or any important undertaking, no separate muhurtam needed.",
     ],
     aboutTe: [
       "దసరా (విజయదశమి) చెడుపై మంచి సాధించిన విజయానికి ప్రతీక — దుర్గాదేవి మహిషాసురునిపై, శ్రీరాముడు రావణునిపై సాధించిన విజయం.",
       "కొత్త పనులు, విద్యాభ్యాసం ప్రారంభించడానికి, ఆయుధ పూజకు అత్యంత శుభప్రదమైన రోజుగా జరుపుకుంటారు.",
+      "దేవీ నవరాత్రుల ముగింపు రోజు విజయదశమి. విజయవాడ కనకదుర్గమ్మ ఆలయంలో నవరాత్రి ఉత్సవాలు వైభవంగా జరుగుతాయి; ఇళ్లలో బొమ్మల కొలువు పెడతారు. దశమి నాడు శమీ పూజ చేసి జమ్మి ఆకులను బంగారంగా పంచుకుంటారు.",
+      "దశమి అపరాహ్ణ సమయం విజయ ముహూర్తం — అక్షరాభ్యాసం, కొత్త వ్యాపారం, ఏ ముఖ్యమైన పని ప్రారంభానికైనా ప్రత్యేక ముహూర్తం అవసరం లేని, సంవత్సరంలోనే అత్యుత్తమ సమయంగా భావిస్తారు.",
     ],
   },
   "deepavali": {
@@ -57,10 +65,14 @@ const CONTENT: Record<string, FestivalContent> = {
     aboutEn: [
       "Deepavali, the festival of lights, celebrates the victory of light over darkness and knowledge over ignorance.",
       "Homes are lit with rows of lamps, Goddess Lakshmi is worshipped for prosperity, and the day is filled with sweets, new clothes and fireworks.",
+      "In the Telugu tradition the festival begins with Naraka Chaturdashi — an oil bath before sunrise recalling Satyabhama and Krishna's victory over Narakasura — followed by Deepavali Amavasya evening, when Lakshmi puja is performed during pradosha kalam and rows of deepams are lit at the doorstep.",
+      "The days around Deepavali are also observed as Dhanteras (buying gold or new vessels), and the day after as Balipadyami, welcoming the generous king Bali. Kartika masam, the month of lamps, begins immediately after.",
     ],
     aboutTe: [
       "దీపావళి దీపాల పండుగ — చీకటిపై వెలుగు, అజ్ఞానంపై జ్ఞానం సాధించిన విజయానికి ప్రతీక.",
       "ఇళ్ళను దీపాల వరుసలతో అలంకరించి, సంపద కోసం లక్ష్మీ దేవిని పూజించి, తీపి-కొత్త బట్టలు-బాణసంచాతో జరుపుకుంటారు.",
+      "తెలుగు సంప్రదాయంలో పండుగ నరక చతుర్దశితో మొదలవుతుంది — సత్యభామా సమేత శ్రీకృష్ణుడు నరకాసురుని వధించిన విజయానికి గుర్తుగా సూర్యోదయానికి ముందే తలంటు స్నానం. అమావాస్య సాయంత్రం ప్రదోష కాలంలో లక్ష్మీ పూజ చేసి గుమ్మం ముందు దీపాల వరుసలు వెలిగిస్తారు.",
+      "దీపావళి ముందు ధన త్రయోదశి (బంగారం, కొత్త పాత్రల కొనుగోలు), మరుసటి రోజు బలి పాడ్యమి జరుపుకుంటారు. వెంటనే దీపాల మాసమైన కార్తీక మాసం ప్రారంభమవుతుంది.",
     ],
   },
   "ugadi": {
@@ -68,10 +80,12 @@ const CONTENT: Record<string, FestivalContent> = {
     aboutEn: [
       "Ugadi marks the Telugu New Year — the beginning of a new samvatsara. The day starts with an oil bath, new clothes and the reading of the year's panchangam (panchanga sravanam).",
       "Ugadi pachadi, blending six tastes, is shared as a reminder that the coming year holds all the flavours of life.",
+      "The six ingredients each carry a meaning: neem flowers (sorrow), jaggery (happiness), raw mango (surprise), tamarind (disgust), green chilli (anger) and salt (fear of the unknown) — accepted together as the year's blessings. Panchanga sravanam, the ceremonial reading of the new samvatsara's forecasts, is held at temples and homes in the evening.",
     ],
     aboutTe: [
       "ఉగాది తెలుగు సంవత్సరాది — కొత్త సంవత్సర ఆరంభం. తైలాభ్యంగన స్నానం, కొత్త బట్టలు, పంచాంగ శ్రవణంతో రోజు మొదలవుతుంది.",
       "ఆరు రుచుల కలయికైన ఉగాది పచ్చడి జీవితంలోని అన్ని అనుభవాలకు ప్రతీకగా పంచుకుంటారు.",
+      "వేప పువ్వు (దుఃఖం), బెల్లం (సంతోషం), మామిడి (ఆశ్చర్యం), చింతపండు (అసహ్యం), పచ్చిమిర్చి (కోపం), ఉప్పు (భయం) — ఆరు రుచులు సంవత్సరంలోని అనుభవాలన్నింటినీ స్వీకరించడానికి ప్రతీక. సాయంత్రం ఆలయాలలో, ఇళ్లలో కొత్త సంవత్సర ఫలితాలు తెలిపే పంచాంగ శ్రవణం జరుగుతుంది.",
     ],
   },
   "makara-sankranti": {
@@ -79,10 +93,14 @@ const CONTENT: Record<string, FestivalContent> = {
     aboutEn: [
       "Makara Sankranti is the harvest festival, marking the sun's transit into Capricorn (Makara) and the start of its northward journey (Uttarayana).",
       "Celebrated over three days — Bhogi, Sankranti and Kanuma — with bonfires, rangoli, sweets made of sesame and jaggery, and gratitude to cattle and the harvest.",
+      "Bhogi begins before dawn with bonfires of old belongings; children are showered with regi pallu (jujube fruits) in the bhogi pallu ritual. On Sankranti day, homes glow with rangavalli muggulu and gobbemmalu, gangireddu bullocks and Haridasu singers go door to door, and families fly kites and share ariselu, chakinalu and nuvvula laddu.",
+      "Kanuma honours cattle and the farm; the day after, Mukkanuma, closes the festival with family feasts. Uttarayana, beginning this day, is considered the auspicious half of the year for weddings and new beginnings.",
     ],
     aboutTe: [
       "మకర సంక్రాంతి పంట పండుగ — సూర్యుడు మకర రాశిలోకి ప్రవేశించి ఉత్తరాయణం ప్రారంభమయ్యే రోజు.",
       "భోగి, సంక్రాంతి, కనుమ — మూడు రోజులు భోగి మంటలు, ముగ్గులు, నువ్వులు-బెల్లం తీపి, పశువుల పూజతో జరుపుకుంటారు.",
+      "భోగి నాడు తెల్లవారుజామున భోగి మంటలు వేసి, పిల్లలకు భోగి పళ్ళు (రేగి పళ్ళు) పోస్తారు. సంక్రాంతి రోజు రంగవల్లి ముగ్గులు, గొబ్బెమ్మలు, ఇంటింటికీ వచ్చే గంగిరెద్దులు, హరిదాసు కీర్తనలు; అరిసెలు, చకినాలు, నువ్వుల లడ్డూలతో పండుగ శోభిస్తుంది. గాలిపటాలు ఎగురవేస్తారు.",
+      "కనుమ నాడు పశువులను పూజిస్తారు; ముక్కనుమతో పండుగ ముగుస్తుంది. ఈ రోజు నుండి ప్రారంభమయ్యే ఉత్తరాయణం వివాహాలు, శుభకార్యాలకు అనుకూలమైన పుణ్యకాలంగా భావిస్తారు.",
     ],
   },
   "maha-shivaratri": {
@@ -169,9 +187,11 @@ const CONTENT: Record<string, FestivalContent> = {
     image: `${IMG}/temple.jpg`,
     aboutEn: [
       "Nagula Chavithi is observed to worship the serpent gods (Naga devatas) for the well-being and protection of one's children and family.",
+      "Observed on Kartika Shukla Chaturthi, soon after Deepavali, women fast and visit a putta (anthill or snake shrine) to offer milk, eggs, chalimidi and turmeric-kumkuma to the Naga devata, praying for children's health and for relief from sarpa dosha. Many also worship Subrahmanya Swamy, the lord of serpents, on this day.",
     ],
     aboutTe: [
       "నాగుల చవితి సంతాన క్షేమం, కుటుంబ రక్షణ కోసం నాగ దేవతలను ఆరాధించే పండుగ.",
+      "దీపావళి తర్వాత వచ్చే కార్తీక శుద్ధ చవితి నాడు స్త్రీలు ఉపవాసం ఉండి పుట్ట వద్దకు వెళ్లి పాలు, చలిమిడి, పసుపు-కుంకుమ సమర్పిస్తారు. పిల్లల ఆరోగ్యం, సర్ప దోష నివారణ కోసం ప్రార్థిస్తారు. చాలా మంది ఈ రోజు నాగరాజైన సుబ్రహ్మణ్యేశ్వర స్వామిని కూడా పూజిస్తారు.",
     ],
   },
 };
