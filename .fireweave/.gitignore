@@ -1,5 +1,0 @@
-.cache/
-.queue/
-local.json
-.lock
-deploy-beacon.env.local
