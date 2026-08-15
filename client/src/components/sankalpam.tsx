@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ScrollText, Globe } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Check, Copy, Globe, ScrollText } from "lucide-react";
 import type { PanchangData } from "@shared/schema";
 import { useLanguage } from "@/hooks/use-language";
 
@@ -19,6 +21,9 @@ interface CountryInfo {
   varshaTelugu: string;
   khanda: string;
   khandaTelugu: string;
+  /** Optional extra geographic phrase recited after the khanda. */
+  locale?: string;
+  localeTelugu?: string;
 }
 
 const COUNTRIES: CountryInfo[] = [
@@ -32,6 +37,8 @@ const COUNTRIES: CountryInfo[] = [
     varshaTelugu: "భరత వర్షే",
     khanda: "Bharata Khande",
     khandaTelugu: "భరత ఖండే",
+    locale: "Meroh Dakshina Digbhage, Sri Shailasya (Godavari-Krishna nadyoh) Praanthe",
+    localeTelugu: "మేరోః దక్షిణ దిగ్భాగే, శ్రీశైలస్య ప్రాంతే",
   },
   {
     code: "US",
@@ -41,8 +48,12 @@ const COUNTRIES: CountryInfo[] = [
     dwipaTelugu: "క్రౌంచ ద్వీపే",
     varsha: "Ramanaka Varshe",
     varshaTelugu: "రమణక వర్షే",
-    khanda: "Ailaavruta Khande",
-    khandaTelugu: "ఐలావృత ఖండే",
+    khanda: "Aindra Khande",
+    khandaTelugu: "ఐంద్ర ఖండే",
+    locale:
+      "Meroh Paschima Digbhage, Uttara Americayaam, Atlantic-Pacific Saagarayor Madhya Pradeshe, Rocky-McKinley Parvatayor Madhye, Mississippi-Missouri ityadi Jeeva Nadee Pareevaaha Praanthe",
+    localeTelugu:
+      "మేరోః పశ్చిమ దిగ్భాగే, ఉత్తర అమెరికాయాం, అట్లాంటిక్-పసిఫిక్ సాగరయోర్ మధ్య ప్రదేశే, రాకీ-మెకిన్లీ పర్వతయోర్ మధ్యే, మిస్సిసిపి-మిస్సోరి ఇత్యాది జీవ నదీ పరీవాహ ప్రాంతే",
   },
   {
     code: "CA",
@@ -54,6 +65,8 @@ const COUNTRIES: CountryInfo[] = [
     varshaTelugu: "రమణక వర్షే",
     khanda: "Hiranmaya Khande",
     khandaTelugu: "హిరణ్మయ ఖండే",
+    locale: "Meroh Paschima Digbhage, Uttara Americayaam",
+    localeTelugu: "మేరోః పశ్చిమ దిగ్భాగే, ఉత్తర అమెరికాయాం",
   },
   {
     code: "GB",
@@ -112,7 +125,20 @@ const COUNTRIES: CountryInfo[] = [
   },
 ];
 
+// Recitation-friendly country names for the "<X> Rashtre" clause.
+const RASHTRA_EN: Record<string, string> = {
+  IN: "Bharata", US: "America", CA: "Canada", GB: "Britain",
+  AU: "Australia", AE: "Arab", SG: "Singapura", JP: "Japan",
+};
+const RASHTRA_TE: Record<string, string> = {
+  IN: "భరత", US: "అమెరికా", CA: "కెనడా", GB: "బ్రిటన్",
+  AU: "ఆస్ట్రేలియా", AE: "అరబ్", SG: "సింగపుర", JP: "జపాన్",
+};
+
 const STORAGE_KEY = "sankalpam_country";
+const CITY_KEY = "sankalpam_city";
+const GOTRA_KEY = "sankalpam_gotra";
+const NAME_KEY = "sankalpam_name";
 
 /** Best-effort map from an IANA timezone to the closest Sankalpam country. */
 function countryFromTimezone(tz?: string): string {
@@ -157,8 +183,6 @@ function getRitu(teluguMonthIndex: number): { name: string; nameTelugu: string }
 }
 
 function getAyana(teluguMonthIndex: number): { name: string; nameTelugu: string } {
-  // Uttarayana: Pushya - Jyeshtha (months 9,10,11,0,1,2)
-  // Dakshinayana: Ashadha - Margashira (months 3,4,5,6,7,8)
   const isUttarayana = [9, 10, 11, 0, 1, 2].includes(teluguMonthIndex);
   return isUttarayana
     ? { name: "Uttarayana", nameTelugu: "ఉత్తరాయణ" }
@@ -170,17 +194,33 @@ const TELUGU_MONTH_LIST = [
   "Ashwayuja", "Kartika", "Margashira", "Pushya", "Magha", "Phalguna"
 ];
 
+function usePersistedInput(key: string): [string, (v: string) => void] {
+  const [value, setValue] = useState<string>(
+    () => (typeof window !== "undefined" && localStorage.getItem(key)) || "",
+  );
+  const set = (v: string) => {
+    setValue(v);
+    if (typeof window !== "undefined") {
+      if (v.trim()) localStorage.setItem(key, v);
+      else localStorage.removeItem(key);
+    }
+  };
+  return [value, set];
+}
+
 export function Sankalpam({ panchang }: SankalpamProps) {
   const { language, t } = useLanguage();
   const [countryCode, setCountryCode] = useState<string>(() =>
     (typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY)) || "IN",
   );
-  // Whether the user explicitly picked a country (which overrides timezone auto-pick).
   const [isManual, setIsManual] = useState<boolean>(
     () => typeof window !== "undefined" && localStorage.getItem(STORAGE_KEY) != null,
   );
+  const [city, setCity] = usePersistedInput(CITY_KEY);
+  const [gotra, setGotra] = usePersistedInput(GOTRA_KEY);
+  const [personName, setPersonName] = usePersistedInput(NAME_KEY);
+  const [copied, setCopied] = useState(false);
 
-  // Auto-pick the country from the selected timezone unless the user chose one.
   useEffect(() => {
     if (!isManual && panchang?.timezone) {
       setCountryCode(countryFromTimezone(panchang.timezone));
@@ -195,14 +235,78 @@ export function Sankalpam({ panchang }: SankalpamProps) {
     }
   };
 
-  if (!panchang) return null;
-
   const country = COUNTRIES.find((c) => c.code === countryCode) || COUNTRIES[0];
-  const monthIndex = TELUGU_MONTH_LIST.indexOf(panchang.teluguMonthEnglish);
+  const monthIndex = panchang ? TELUGU_MONTH_LIST.indexOf(panchang.teluguMonthEnglish) : 0;
   const ritu = getRitu(monthIndex >= 0 ? monthIndex : 0);
   const ayana = getAyana(monthIndex >= 0 ? monthIndex : 0);
-  const dateObj = new Date(panchang.date.includes("T") ? panchang.date : panchang.date + "T12:00:00");
+  const dateObj = panchang
+    ? new Date(panchang.date.includes("T") ? panchang.date : panchang.date + "T12:00:00")
+    : new Date();
   const vasara = VASARAS[dateObj.getDay()];
+
+  // The full text as plain strings (used for the copy button and, split on
+  // "\n\n", for rendering).
+  const fullText = useMemo(() => {
+    if (!panchang) return { en: "", te: "" };
+    const cityEn = city.trim() || "____";
+    const gotraEn = gotra.trim() || "____";
+    const nameEn = personName.trim() || "____";
+    const en = [
+      "Mama upaatta samasta duritakshaya dvaara Sri Parameshwara muddishya, Sri Parameshwara preetyartham, shubhe shobhane muhurte, Sri Mahavishnor aajnaya pravartamaanasya, Adya Brahmanah Dviteeya Paraardhe, Shveta Varaaha Kalpe, Vaivasvata Manvantare, Kaliyuge, Prathama Paade,",
+      `${country.dwipa}, ${country.varsha}, ${country.khanda},${country.locale ? ` ${country.locale},` : ""} ${RASHTRA_EN[country.code] || country.name} Rashtre, ${cityEn} Nagara Sthaane, Swasthaane, Shobhana Gruhe, Samasta Devataa Braahmana Harihara Sannidhau,`,
+      `Asmin Vartamaana Vyaavahaarika Chaandramaanena, Prabhavaadi Shashti Samvatsaraanaam Madhye, Sri ${panchang.samvatsaraName} Naama Samvatsare, ${ayana.name} Ayane, ${ritu.name} Ritau, ${panchang.isAdhikaMasa ? "Adhika " : ""}${panchang.teluguMonthEnglish} Maase, ${panchang.paksha} Pakshe, ${panchang.tithi} Tithau, ${vasara.name} Vaasara Yuktaayaam, ${panchang.nakshatra} Nakshatra Yuktaayaam, ${panchang.yoga} Shubha Yoge, ${panchang.karana} Shubha Karane — evam guna visheshana vishishtaayaam, asyaam shubha tithau,`,
+      `Sriman ${gotraEn} Gotrasya, ${nameEn} Naamadheyasya, mama sahakutumbasya — kshema, sthairya, vijaya, abhaya, aayur-aarogya, aishvaryaadi abhivriddhyartham; dharma-artha-kaama-moksha chaturvidha purushaartha phala siddhyartham; mama ishta-kaamya-artha siddhyartham; samasta mangala avaaptyartham — (mention the puja / vratam / japam being performed) aham karishye.`,
+    ].join("\n\n");
+    const te = [
+      "మమ ఉపాత్త సమస్త దురితక్షయ ద్వారా శ్రీ పరమేశ్వర ముద్దిశ్య, శ్రీ పరమేశ్వర ప్రీత్యర్థం, శుభే శోభనే ముహూర్తే, శ్రీ మహావిష్ణోః ఆజ్ఞయా ప్రవర్తమానస్య, ఆద్య బ్రహ్మణః ద్వితీయ పరార్ధే, శ్వేత వరాహ కల్పే, వైవస్వత మన్వంతరే, కలియుగే, ప్రథమ పాదే,",
+      `${country.dwipaTelugu}, ${country.varshaTelugu}, ${country.khandaTelugu},${country.localeTelugu ? ` ${country.localeTelugu},` : ""} ${RASHTRA_TE[country.code] || country.nameTelugu} రాష్ట్రే, ${city.trim() || "____"} నగర స్థానే, స్వస్థానే, శోభన గృహే, సమస్త దేవతా బ్రాహ్మణ హరిహర సన్నిధౌ,`,
+      `అస్మిన్ వర్తమాన వ్యావహారిక చాంద్రమానేన, ప్రభవాది షష్టి సంవత్సరాణాం మధ్యే, శ్రీ ${panchang.samvatsaraNameTelugu} నామ సంవత్సరే, ${ayana.nameTelugu} ఆయనే, ${ritu.nameTelugu} ఋతౌ, ${panchang.isAdhikaMasa ? "అధిక " : ""}${panchang.teluguMonth} మాసే, ${panchang.pakshaTelugu.replace(" పక్షం", "")} పక్షే, ${panchang.tithiTelugu} తిథౌ, ${vasara.nameTelugu} వాసర యుక్తాయాం, ${panchang.nakshatraTelugu} నక్షత్ర యుక్తాయాం, ${panchang.yogaTelugu} శుభ యోగే, ${panchang.karanaTelugu} శుభ కరణే — ఏవం గుణ విశేషణ విశిష్టాయాం, అస్యాం శుభ తిథౌ,`,
+      `శ్రీమాన్ ${gotra.trim() || "____"} గోత్రస్య, ${personName.trim() || "____"} నామధేయస్య, మమ సహకుటుంబస్య — క్షేమ, స్థైర్య, విజయ, అభయ, ఆయురారోగ్య, ఐశ్వర్యాది అభివృద్ధ్యర్థం; ధర్మ-అర్థ-కామ-మోక్ష చతుర్విధ పురుషార్థ ఫల సిద్ధ్యర్థం; మమ ఇష్ట కామ్యార్థ సిద్ధ్యర్థం; సమస్త మంగళ అవాప్త్యర్థం — (చేయబోయే పూజ / వ్రతం / జపం పేరు చెప్పండి) అహం కరిష్యే.`,
+    ].join("\n\n");
+    return { en, te };
+  }, [panchang, country, ayana, ritu, vasara, city, gotra, personName]);
+
+  if (!panchang) return null;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(language === "telugu" ? fullText.te : fullText.en);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard unavailable — ignore
+    }
+  };
+
+  const text = language === "telugu" ? fullText.te : fullText.en;
+  // Highlight the values computed for today by bolding known tokens.
+  const highlights = [
+    panchang.samvatsaraName, panchang.samvatsaraNameTelugu,
+    panchang.tithi, panchang.tithiTelugu,
+    panchang.nakshatra, panchang.nakshatraTelugu,
+    panchang.yoga, panchang.yogaTelugu,
+    panchang.karana, panchang.karanaTelugu,
+    panchang.teluguMonth, panchang.teluguMonthEnglish,
+    ayana.name, ayana.nameTelugu, ritu.name, ritu.nameTelugu,
+    vasara.name, vasara.nameTelugu,
+  ].filter(Boolean);
+
+  const renderPara = (para: string, i: number) => {
+    let parts: (string | JSX.Element)[] = [para];
+    highlights.forEach((h, hi) => {
+      parts = parts.flatMap((part) => {
+        if (typeof part !== "string" || !part.includes(h)) return [part];
+        const split = part.split(h);
+        const out: (string | JSX.Element)[] = [];
+        split.forEach((s, si) => {
+          if (si > 0) out.push(<strong key={`${i}-${hi}-${si}`} className="font-semibold text-primary">{h}</strong>);
+          out.push(s);
+        });
+        return out;
+      });
+    });
+    return <p key={i}>{parts}</p>;
+  };
 
   return (
     <Card data-testid="card-sankalpam">
@@ -211,19 +315,19 @@ export function Sankalpam({ panchang }: SankalpamProps) {
           <div>
             <CardTitle className="cel-panel-title flex items-center gap-2">
               <ScrollText className="h-4 w-4 text-primary" />
-              {t("సంకల్పం", "Sankalpam")}
+              {t("నేటి సంకల్పం", "Today's Sankalpam")}
             </CardTitle>
             <CardDescription>
               {t(
-                "మీ స్థానానికి అనుగుణంగా సంకల్ప వాక్యం",
-                "Sankalpam tailored to your country"
+                "మీ స్థలం, కాలం, పేరుతో పూర్తి సంకల్ప వాక్యం",
+                "The full sankalpam for your place, time and name"
               )}
             </CardDescription>
           </div>
           <div className="flex items-center gap-2">
             <Globe className="h-4 w-4 text-muted-foreground" />
             <Select value={countryCode} onValueChange={handleCountryChange}>
-              <SelectTrigger className="w-[200px]" data-testid="select-sankalpam-country">
+              <SelectTrigger className="w-[190px]" data-testid="select-sankalpam-country">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -236,83 +340,46 @@ export function Sankalpam({ panchang }: SankalpamProps) {
             </Select>
           </div>
         </div>
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
+          <Input
+            value={city}
+            onChange={(e) => setCity(e.target.value)}
+            placeholder={t("మీ ఊరు (ఉదా: హైదరాబాద్)", "Your city (e.g. San Mateo)")}
+            data-testid="input-sankalpam-city"
+          />
+          <Input
+            value={gotra}
+            onChange={(e) => setGotra(e.target.value)}
+            placeholder={t("గోత్రం", "Gotram")}
+            data-testid="input-sankalpam-gotra"
+          />
+          <Input
+            value={personName}
+            onChange={(e) => setPersonName(e.target.value)}
+            placeholder={t("పేరు (శర్మ/వర్మ...)", "Your name")}
+            data-testid="input-sankalpam-name"
+          />
+        </div>
       </CardHeader>
       <CardContent>
-        {language === "telugu" ? (
-          <div
-            className="space-y-2 text-base leading-relaxed font-serif text-foreground"
-            data-testid="text-sankalpam-telugu"
-          >
-            <p>
-              శుభే శోభనే ముహూర్తే, ఆద్యబ్రహ్మణః ద్వితీయ పరార్ధే,
-              శ్వేత వరాహ కల్పే, వైవస్వత మన్వంతరే, కలియుగే ప్రథమ పాదే,
-            </p>
-            <p>
-              <span className="font-semibold text-primary">{country.dwipaTelugu}</span>,{" "}
-              <span className="font-semibold text-primary">{country.varshaTelugu}</span>,{" "}
-              <span className="font-semibold text-primary">{country.khandaTelugu}</span>,
-            </p>
-            <p>
-              శ్రీమన్నృప శాలివాహన శకే, బౌద్ధావతారే, రామక్షేత్రే,{" "}
-              <span className="font-semibold text-accent-foreground">
-                శ్రీ {panchang.samvatsaraNameTelugu}
-              </span>{" "}
-              నామ సంవత్సరే,{" "}
-              <span className="font-semibold">{ayana.nameTelugu}</span> ఆయనే,{" "}
-              <span className="font-semibold">{ritu.nameTelugu}</span> ఋతౌ,
-            </p>
-            <p>
-              <span className="font-semibold">
-                {panchang.isAdhikaMasa ? "అధిక " : ""}{panchang.teluguMonth}
-              </span>{" "}
-              మాసే,{" "}
-              <span className="font-semibold">{panchang.pakshaTelugu}</span>,{" "}
-              <span className="font-semibold">{panchang.tithiTelugu}</span> తిథౌ,{" "}
-              <span className="font-semibold">{vasara.nameTelugu}</span> వాసర యుక్తాయాం,{" "}
-              <span className="font-semibold">{panchang.nakshatraTelugu}</span> నక్షత్రే...
-            </p>
-          </div>
-        ) : (
-          <div
-            className="space-y-2 text-base leading-relaxed font-serif text-foreground"
-            data-testid="text-sankalpam-english"
-          >
-            <p>
-              Shubhe Shobhane Muhurte, Adya Brahmanah Dvitiya Pararthe,
-              Shveta Varaha Kalpe, Vaivasvata Manvantare, Kaliyuge Prathame Pade,
-            </p>
-            <p>
-              <span className="font-semibold text-primary">{country.dwipa}</span>,{" "}
-              <span className="font-semibold text-primary">{country.varsha}</span>,{" "}
-              <span className="font-semibold text-primary">{country.khanda}</span>,
-            </p>
-            <p>
-              Shrimannrupa Shalivahana Shake, Bauddhavatare, Ramakshetre,{" "}
-              <span className="font-semibold text-accent-foreground">
-                Shri {panchang.samvatsaraName}
-              </span>{" "}
-              Nama Samvatsare,{" "}
-              <span className="font-semibold">{ayana.name}</span> Ayane,{" "}
-              <span className="font-semibold">{ritu.name}</span> Ritau,
-            </p>
-            <p>
-              <span className="font-semibold">
-                {panchang.isAdhikaMasa ? "Adhika " : ""}{panchang.teluguMonthEnglish}
-              </span>{" "}
-              Mase,{" "}
-              <span className="font-semibold">{panchang.paksha} Pakshe</span>,{" "}
-              <span className="font-semibold">{panchang.tithi}</span> Tithau,{" "}
-              <span className="font-semibold">{vasara.name}</span> Vasara Yuktayam,{" "}
-              <span className="font-semibold">{panchang.nakshatra}</span> Nakshatre...
-            </p>
-          </div>
-        )}
-        <p className="text-xs text-muted-foreground mt-4 italic">
-          {t(
-            "(సంకల్పం: పూజ ప్రారంభంలో సమయం, స్థలం, వ్యక్తి సంకల్పించే సంప్రదాయ వాక్యం)",
-            "(Sankalpam: traditional declaration of time, place and intent recited at the start of any puja or vrat)"
-          )}
-        </p>
+        <div
+          className="space-y-3 text-base leading-relaxed font-serif text-foreground"
+          data-testid={language === "telugu" ? "text-sankalpam-telugu" : "text-sankalpam-english"}
+        >
+          {text.split("\n\n").map(renderPara)}
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-muted-foreground italic max-w-md">
+            {t(
+              "వివాహితులు 'మమ సహకుటుంబస్య' ముందు 'ధర్మపత్నీ సమేతస్య' చేర్చుకోవచ్చు. సంకల్పం: పూజ ప్రారంభంలో కాలం, స్థలం, సంకల్పం ప్రకటించే సంప్రదాయ వాక్యం.",
+              "Married individuals may add 'Dharmapatni samethasya' before 'mama sahakutumbasya'. The sankalpam declares the time, place and intent at the start of any puja or vratam."
+            )}
+          </p>
+          <Button variant="outline" size="sm" onClick={copy} data-testid="button-copy-sankalpam">
+            {copied ? <Check className="mr-1.5 h-4 w-4 text-emerald-600" /> : <Copy className="mr-1.5 h-4 w-4" />}
+            {copied ? t("కాపీ అయింది", "Copied") : t("కాపీ చేయండి", "Copy")}
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

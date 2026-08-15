@@ -10,6 +10,10 @@ import {
   pakshasTelugu,
   samvatsaras,
   samvatsarasTelugu,
+  yogaNames,
+  yogaNamesTelugu,
+  karanaNames,
+  karanaNamesTelugu,
 } from "@shared/schema";
 import * as Astronomy from "astronomy-engine";
 
@@ -29,6 +33,33 @@ function getMoonLongitude(date: Date): number {
   let lon = ecliptic.lon;
   if (lon < 0) lon += 360;
   return lon;
+}
+
+// Yoga: sum of the sidereal longitudes of Sun and Moon, divided into 27
+// segments of 13°20′ each.
+function getYogaIndex(date: Date): number {
+  const astroDate = Astronomy.MakeTime(date);
+  const sunLon = Astronomy.SunPosition(astroDate).elon;
+  const moonLon = Astronomy.EclipticGeoMoon(astroDate).lon;
+  const ayanamsa = getAyanamsa(date);
+  let sum = sunLon - ayanamsa + (moonLon - ayanamsa);
+  sum = ((sum % 360) + 360) % 360;
+  return Math.floor(sum / (360 / 27)) % 27;
+}
+
+// Karana: half a tithi (6° of elongation). Half 0 is Kimstughna, halves 1-56
+// cycle through the 7 movable karanas, halves 57-59 are Shakuni, Chatushpada,
+// Naga (fixed).
+function getKaranaIndex(date: Date): number {
+  const astroDate = Astronomy.MakeTime(date);
+  const sunEcliptic = Astronomy.SunPosition(astroDate);
+  const moonEcliptic = Astronomy.EclipticGeoMoon(astroDate);
+  let elongation = moonEcliptic.lon - sunEcliptic.elon;
+  elongation = ((elongation % 360) + 360) % 360;
+  const half = Math.floor(elongation / 6) % 60;
+  if (half === 0) return 10;
+  if (half >= 57) return 7 + (half - 57);
+  return (half - 1) % 7;
 }
 
 // Calculate tithi number (0-29) from Sun-Moon angular distance
@@ -596,6 +627,10 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
     nakshatraTelugu: nakshatra.nameTelugu,
     nakshatraStartTime: nakshatraTimings.startTime,
     nakshatraEndTime: nakshatraTimings.endTime,
+    yoga: yogaNames[getYogaIndex(sunriseDate)],
+    yogaTelugu: yogaNamesTelugu[getYogaIndex(sunriseDate)],
+    karana: karanaNames[getKaranaIndex(sunriseDate)],
+    karanaTelugu: karanaNamesTelugu[getKaranaIndex(sunriseDate)],
     sunrise: getSunrise(date, lat, lon, offset),
     sunset: getSunset(date, lat, lon, offset),
     timezone,

@@ -43,6 +43,33 @@ export const teluguMonthsEnglish = [
 export const pakshas = ["Shukla", "Krishna"] as const;
 export const pakshasTelugu = ["శుక్ల పక్షం", "కృష్ణ పక్షం"] as const;
 
+// 27 yogas (sum of the sidereal Sun and Moon longitudes, 13°20′ each)
+export const yogaNames = [
+  "Vishkambha", "Priti", "Ayushman", "Saubhagya", "Shobhana", "Atiganda",
+  "Sukarma", "Dhriti", "Shula", "Ganda", "Vriddhi", "Dhruva", "Vyaghata",
+  "Harshana", "Vajra", "Siddhi", "Vyatipata", "Variyan", "Parigha", "Shiva",
+  "Siddha", "Sadhya", "Shubha", "Shukla", "Brahma", "Indra", "Vaidhriti",
+] as const;
+
+export const yogaNamesTelugu = [
+  "విష్కంభ", "ప్రీతి", "ఆయుష్మాన్", "సౌభాగ్య", "శోభన", "అతిగండ",
+  "సుకర్మ", "ధృతి", "శూల", "గండ", "వృద్ధి", "ధ్రువ", "వ్యాఘాత",
+  "హర్షణ", "వజ్ర", "సిద్ధి", "వ్యతీపాత", "వరీయాన్", "పరిఘ", "శివ",
+  "సిద్ధ", "సాధ్య", "శుభ", "శుక్ల", "బ్రహ్మ", "ఇంద్ర", "వైధృతి",
+] as const;
+
+// 11 karanas: 7 movable (cycling through halves 1-56 of the lunar month)
+// + 4 fixed (Kimstughna at half 0; Shakuni, Chatushpada, Naga at halves 57-59).
+export const karanaNames = [
+  "Bava", "Balava", "Kaulava", "Taitila", "Garaja", "Vanija", "Vishti",
+  "Shakuni", "Chatushpada", "Naga", "Kimstughna",
+] as const;
+
+export const karanaNamesTelugu = [
+  "బవ", "బాలవ", "కౌలవ", "తైతిల", "గరజ", "వణిజ", "విష్టి",
+  "శకుని", "చతుష్పాద", "నాగ", "కింస్తుఘ్న",
+] as const;
+
 // 60-year Telugu Samvatsara (Prabhavadi) cycle
 export const samvatsaras = [
   "Prabhava", "Vibhava", "Shukla", "Pramoda", "Prajapati", "Angirasa",
@@ -94,6 +121,10 @@ export interface PanchangData {
   nakshatraEndTime: string;
   nextNakshatra?: string;
   nextNakshatraTelugu?: string;
+  yoga: string;
+  yogaTelugu: string;
+  karana: string;
+  karanaTelugu: string;
   sunrise: string;
   sunset: string;
   timezone: string;
