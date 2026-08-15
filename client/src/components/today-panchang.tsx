@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { MoonPhase } from "./moon-phase";
-import { Sunrise, Star, Calendar, Moon } from "lucide-react";
+import { Sunrise, Star, Calendar, Moon, Share2, Check, Loader2 } from "lucide-react";
 import type { PanchangData } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useLanguage } from "@/hooks/use-language";
+import { sharePanchangCard } from "@/lib/share-card";
 
 interface TodayPanchangProps {
   panchang?: PanchangData;
@@ -12,6 +15,19 @@ interface TodayPanchangProps {
 
 export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
   const { language, t } = useLanguage();
+  const [shareState, setShareState] = useState<"idle" | "busy" | "done">("idle");
+
+  const share = async () => {
+    if (!panchang || shareState === "busy") return;
+    setShareState("busy");
+    try {
+      await sharePanchangCard(panchang, language === "telugu" ? "telugu" : "english");
+      setShareState("done");
+      setTimeout(() => setShareState("idle"), 2500);
+    } catch {
+      setShareState("idle");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -84,6 +100,27 @@ export function TodayPanchang({ panchang, isLoading }: TodayPanchangProps) {
                 ✦ {language === "telugu" ? panchang.specialDayInfoTelugu : panchang.specialDayInfo}
               </Badge>
             )}
+            <div className="mt-5">
+              <Button
+                onClick={share}
+                disabled={shareState === "busy"}
+                variant="outline"
+                size="sm"
+                className="rounded-full border-primary/40"
+                data-testid="button-share-panchang"
+              >
+                {shareState === "busy" ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : shareState === "done" ? (
+                  <Check className="mr-1.5 h-4 w-4 text-emerald-600" />
+                ) : (
+                  <Share2 className="mr-1.5 h-4 w-4" />
+                )}
+                {shareState === "done"
+                  ? t("సిద్ధం!", "Done!")
+                  : t("పంచాంగం షేర్ చేయండి", "Share today's panchangam")}
+              </Button>
+            </div>
           </div>
 
           <div className="flex-none text-center self-center">
