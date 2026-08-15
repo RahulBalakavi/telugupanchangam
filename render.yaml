@@ -1,16 +1,16 @@
-# Render blueprint. Create the service via Render's "New > Blueprint" flow
-# pointed at this repo, or configure a Web Service by hand with the same
-# build/start commands.
+# Render blueprint, mirroring the live "telugupanchangam" web service.
 #
 # DATABASE_URL points at Neon (external), so no database block here.
 services:
   - type: web
-    name: telugu-panchangam
+    name: telugupanchangam
     runtime: node
     plan: starter # $7/mo; "free" spins down after inactivity, which stops the
                   # in-process notification scheduler (server/push-service.ts).
-    region: oregon
-    buildCommand: npm ci && npm run build
+    region: ohio # same AWS region (us-east-2) as the Neon database
+    # --include=dev is required: Render sets NODE_ENV=production, which makes
+    # npm skip devDependencies, and vite/esbuild/tsx all live there.
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/panchang/today
     autoDeploy: true
@@ -19,13 +19,13 @@ services:
         value: production
       - key: NODE_VERSION
         value: "20"
-      # Set these in the Render dashboard (marked sync:false so they are never
-      # committed): copy VAPID_* verbatim from Replit Secrets or every existing
-      # push subscriber silently stops receiving notifications.
+      # sync:false = set by hand in the dashboard, never committed.
       - key: DATABASE_URL
         sync: false
       - key: ANTHROPIC_API_KEY
         sync: false
+      # Changing the VAPID pair silently invalidates every existing push
+      # subscription, so treat these as permanent once devices have subscribed.
       - key: VAPID_PUBLIC_KEY
         sync: false
       - key: VAPID_PRIVATE_KEY
