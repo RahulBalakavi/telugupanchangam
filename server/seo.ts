@@ -13,6 +13,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import fs from "fs";
 import path from "path";
 import { getAllFestivals } from "./data";
+import { getUpcomingEclipses, getPastEclipses, type EclipseEvent } from "./eclipse";
 import { getPanchangForDate, getTodayInTimezone } from "./panchang";
 import { getMuhurtam } from "./muhurtam";
 import { VRATHAMS, vrathamBySlug } from "../client/src/lib/vrathams";
@@ -498,6 +499,93 @@ function vrathamPage(slug: string): PageMeta | null {
   };
 }
 
+function eclipseName(e: EclipseEvent): string {
+  const kind = e.kind.charAt(0).toUpperCase() + e.kind.slice(1);
+  const type = e.type === "solar" ? "Solar Eclipse (Surya Grahanam)" : "Lunar Eclipse (Chandra Grahanam)";
+  return `${kind} ${type}`;
+}
+
+function eclipsesPage(): PageMeta {
+  const upcoming = getUpcomingEclipses(TZ, 8);
+  const past = getPastEclipses(TZ);
+  const next = upcoming[0];
+  const year = next ? next.dateLocal.slice(0, 4) : new Date().getFullYear().toString();
+  const nextLabel = next
+    ? `${eclipseName(next)} on ${formatDate(next.dateLocal)} (peak ${next.peakLocal} IST)`
+    : "";
+
+  const eventLd = upcoming.slice(0, 6).map((e) => ({
+    "@context": "https://schema.org",
+    "@type": "Event",
+    name: `${eclipseName(e)} — ${formatDate(e.dateLocal)}`,
+    startDate: e.peakUtc,
+    eventAttendanceMode: "https://schema.org/OnlineEventAttendanceMode",
+    eventStatus: "https://schema.org/EventScheduled",
+    location: { "@type": "VirtualLocation", url: abs("/eclipses") },
+    description: `${eclipseName(e)} peaking at ${e.peakLocal} IST in ${e.nakshatra.name} (${e.nakshatra.nameTelugu}) nakshatra. Affected nakshatras: ${e.affectedNakshatras.map((n) => n.name).join(", ")}.`,
+    organizer: { "@type": "Organization", name: "Telugu Panchangam", url: SITE },
+  }));
+
+  const qa = [
+    next && {
+      q: "When is the next eclipse (grahanam) in India?",
+      a: `The next eclipse is a ${eclipseName(next).toLowerCase()} on ${formatDate(next.dateLocal)}, peaking at ${next.peakLocal} IST in ${next.nakshatra.name} nakshatra. Local visibility depends on your city — check your sky on this page.`,
+    },
+    next && {
+      q: `Which nakshatras are affected by the ${formatDate(next.dateLocal)} grahanam?`,
+      a: `The eclipse occurs in ${next.nakshatra.name} (${next.nakshatra.nameTelugu}). Traditionally the janma, anujanma and trijanma stars are affected: ${next.affectedNakshatras.map((n) => `${n.name} (${n.nameTelugu})`).join(", ")}. People born under these stars are advised grahana shanti remedies.`,
+    },
+    {
+      q: "What should be avoided during a grahanam?",
+      a: "Traditionally, eating during the eclipse is avoided (food is avoided from 12 hours before a solar eclipse and 9 hours before a lunar eclipse; children, the elderly and the unwell are exempt), temples remain closed, and new ventures are not started. These observances apply only where the eclipse is visible.",
+    },
+    {
+      q: "What should be done after a grahanam ends?",
+      a: "Take a bath immediately after the eclipse ends (grahana moksha snanam), clean the house and puja area, and give charity — rice, sesame (til), clothes or annadanam. Japa done during the eclipse is considered especially powerful.",
+    },
+  ].filter(Boolean) as { q: string; a: string }[];
+
+  const row = (e: EclipseEvent) =>
+    `<li><strong>${esc(formatDate(e.dateLocal))}:</strong> ${esc(eclipseName(e))} — peak ${esc(e.peakLocal)} IST, in ${esc(e.nakshatra.name)} (${esc(e.nakshatra.nameTelugu)}) nakshatra${e.obscuration != null ? `, ${Math.round(e.obscuration * 100)}% coverage` : ""}. Affected stars: ${e.affectedNakshatras.map((n) => esc(n.name)).join(", ")}.</li>`;
+
+  const body = `
+<main style="max-width:760px;margin:0 auto;padding:24px;font-family:Georgia,serif">
+  <h1>Eclipses ${esc(year)} — గ్రహణాలు | Surya &amp; Chandra Grahanam Dates, Timings, Nakshatra Effects</h1>
+  <p>Every upcoming solar eclipse (సూర్యగ్రహణం) and lunar eclipse (చంద్రగ్రహణం), computed from astronomical data: the exact peak time in IST, the nakshatra in which the eclipse occurs, which janma nakshatras are traditionally affected, and the do's, don'ts and remedies followed in Telugu households. The interactive page also shows whether each eclipse is visible from your city.</p>
+  ${next ? `<h2>Next eclipse</h2>\n  <p>${esc(nextLabel)}. It occurs in ${esc(next.nakshatra.name)} (${esc(next.nakshatra.nameTelugu)}) nakshatra; the traditionally affected stars are ${next.affectedNakshatras.map((n) => esc(`${n.name} (${n.nameTelugu})`)).join(", ")}.</p>` : ""}
+  <h2>Upcoming eclipses</h2>
+  <ul>
+${upcoming.map(row).join("\n")}
+  </ul>
+  <h2>Recent eclipses (past year)</h2>
+  <ul>
+${past.map(row).join("\n")}
+  </ul>
+  ${faqSection(qa)}
+  ${relatedNav()}
+</main>`.trim();
+
+  return {
+    title: next
+      ? `${eclipseName(next)} ${formatDate(next.dateLocal)} — గ్రహణం Timings, Nakshatra Effects & Remedies | Telugu Panchangam`
+      : `Eclipses ${year} — Surya & Chandra Grahanam Dates & Timings | Telugu Panchangam`,
+    description: next
+      ? `${nextLabel}. All grahanam dates for ${year} with IST timings, affected nakshatras (janma/anujanma/trijanma), city-wise visibility, and traditional do's, don'ts & remedies in Telugu and English.`
+      : `Solar and lunar eclipse (grahanam) dates with IST timings, affected nakshatras, visibility by city, and traditional observances.`,
+    canonicalPath: "/eclipses",
+    jsonLd: [
+      breadcrumb([
+        { name: "Home", path: "/" },
+        { name: "Eclipses", path: "/eclipses" },
+      ]),
+      ...eventLd,
+      faqPage(qa),
+    ],
+    bodyHtml: body,
+    maxAge: 3600,
+  };
+}
+
 // Map a request path to its page meta, or null if it isn't an SEO route.
 export function pageForPath(pathname: string): PageMeta | null {
   if (pathname === "/") return homePage();
@@ -509,6 +597,7 @@ export function pageForPath(pathname: string): PageMeta | null {
   }
   if (pathname === "/festivals") return festivalsListPage();
   if (pathname === "/vrathams") return vrathamsListPage();
+  if (pathname === "/eclipses") return eclipsesPage();
 
   let m = pathname.match(/^\/panchangam\/(\d{4}-\d{2}-\d{2})$/);
   if (m) return panchangPage(m[1], false);
@@ -620,6 +709,7 @@ export function buildSitemap(): string {
     { loc: abs("/today"), changefreq: "daily", priority: "0.9" },
     { loc: abs("/festivals"), changefreq: "weekly", priority: "0.8" },
     { loc: abs("/vrathams"), changefreq: "monthly", priority: "0.8" },
+    { loc: abs("/eclipses"), changefreq: "weekly", priority: "0.8" },
     ...getAllFestivals().map((f) => ({
       loc: abs(`/festivals/${f.id}`),
       changefreq: "monthly",
@@ -660,6 +750,7 @@ export function registerSeoRoutes(app: Express, distPath: string): void {
       "/today",
       "/festivals",
       "/vrathams",
+      "/eclipses",
       "/panchangam/:date",
       "/festivals/:slug",
       "/vrathams/:slug",
