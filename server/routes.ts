@@ -20,7 +20,7 @@ import {
   ChatUnavailableError,
   type ChatMessage,
 } from "./chat";
-import { getUpcomingEclipses, getLocalEclipseVisibility, getEclipsesForMonth, isValidTimezone } from "./eclipse";
+import { getUpcomingEclipses, getPastEclipses, getLocalEclipseVisibility, getEclipsesForMonth, isValidTimezone } from "./eclipse";
 import { storage } from "./storage";
 import { getVapidPublicKey, startNotificationScheduler, sendNotificationToDevice } from "./push-service";
 
@@ -53,7 +53,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid timezone" });
       }
       const eclipses = getUpcomingEclipses(timezone, 8);
-      res.json({ eclipses });
+      const past = getPastEclipses(timezone);
+      res.json({ eclipses, past });
     } catch (error) {
       res.status(500).json({ error: "Failed to compute eclipses" });
     }

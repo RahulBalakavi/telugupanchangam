@@ -137,6 +137,24 @@ export function getUpcomingEclipses(
   return events.slice(0, count);
 }
 
+/**
+ * Returns eclipses whose peak fell in the last `days` days (default: one
+ * year), most recent first.
+ */
+export function getPastEclipses(
+  timezone: string = "Asia/Kolkata",
+  days: number = 366,
+  now: Date = new Date(),
+): EclipseEvent[] {
+  // Search forward from the window start; 12 events comfortably covers a year
+  // (a calendar year has at most 7 eclipses).
+  const from = new Date(now.getTime() - (days + 5) * 86400_000);
+  const nowIso = now.toISOString();
+  return getUpcomingEclipses(timezone, 12, from)
+    .filter((e) => e.peakUtc < nowIso)
+    .sort((a, b) => b.peakUtc.localeCompare(a.peakUtc));
+}
+
 function moonAltitude(date: Date, lat: number, lon: number): number {
   const observer = new Astronomy.Observer(lat, lon, 0);
   const eq = Astronomy.Equator(Astronomy.Body.Moon, date, observer, true, true);

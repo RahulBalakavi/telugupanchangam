@@ -2,16 +2,17 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeft, Check, CircleAlert, Globe2, Loader2, MapPin, Moon, ShieldCheck,
+  ArrowLeft, Check, ChevronDown, CircleAlert, Globe2, Loader2, MapPin, Moon, ShieldCheck,
   Sparkles, Star, Sun, TriangleAlert
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/hooks/use-language";
 import { getStoredTimezone } from "@/components/timezone-selector";
+import EclipsePlayground from "@/components/eclipse-playground";
 import { nakshatraNames, nakshatraNamesTelugu } from "@shared/schema";
 
 interface EclipseNakshatraInfo { index: number; name: string; nameTelugu: string; severity: "high" | "medium"; reason: string; }
@@ -25,6 +26,8 @@ interface LocalEclipseVisibility {
   beginLocal: string | null; peakLocal: string | null; endLocal: string | null;
   peakAltitude: number | null; note: string; noteTelugu: string;
 }
+type LocationState = { lat: number; lon: number; label: string } | null;
+
 const CITY_PRESETS = [
   { name: "Hyderabad", nameTelugu: "హైదరాబాద్", lat: 17.385, lon: 78.4867 },
   { name: "Vijayawada", nameTelugu: "విజయవాడ", lat: 16.5062, lon: 80.648 },
@@ -69,13 +72,92 @@ function kindLabel(kind: string, t: (te: string, en: string) => string) {
   return labels[kind] ? t(...labels[kind]) : kind;
 }
 
+function useVisibility(eclipse: EclipseEvent, location: LocationState, timezone: string, enabled: boolean) {
+  return useQuery<LocalEclipseVisibility>({
+    queryKey: ["/api/eclipses/visibility", eclipse.peakUtc, location?.lat, location?.lon, timezone],
+    enabled: enabled && !!location,
+    queryFn: async () => {
+      const p = new URLSearchParams({ type: eclipse.type, peakUtc: eclipse.peakUtc, lat: String(location!.lat), lon: String(location!.lon), timezone });
+      const response = await fetch(`/api/eclipses/visibility?${p}`);
+      if (!response.ok) throw new Error("visibility");
+      return response.json();
+    },
+  });
+}
+
+/* Mini Sun/Moon disk motif for the countdown card */
+function DiskMotif({ type }: { type: "solar" | "lunar" }) {
+  return (
+    <svg viewBox="0 0 190 110" className="mx-auto h-24 w-44">
+      <circle cx="95" cy="52" r="38" fill="none" stroke="hsl(var(--gold)/.4)" strokeDasharray="3 5" />
+      {type === "lunar" ? (
+        <>
+          <circle cx="95" cy="52" r="25" fill="#3a1710" stroke="rgba(230,120,80,.5)" />
+          <circle cx="66" cy="44" r="14" fill="#f4efdf" />
+        </>
+      ) : (
+        <>
+          <circle cx="95" cy="52" r="25" fill="url(#cd-sun)" />
+          <circle cx="112" cy="44" r="18" fill="#171c2b" stroke="rgba(140,150,190,.4)" />
+          <defs><radialGradient id="cd-sun"><stop stopColor="#fff2b2" /><stop offset="1" stopColor="#c96f24" /></radialGradient></defs>
+        </>
+      )}
+    </svg>
+  );
+}
+
+/* Live countdown to the next eclipse */
+function CountdownCard({ eclipse, timezone }: { eclipse: EclipseEvent; timezone: string }) {
+  const { language, t } = useLanguage();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(id);
+  }, []);
+  const diff = Math.max(0, new Date(eclipse.peakUtc).getTime() - now);
+  const days = Math.floor(diff / 86400_000);
+  const hrs = Math.floor((diff % 86400_000) / 3600_000);
+  const min = Math.floor((diff % 3600_000) / 60_000);
+  const date = new Date(eclipse.peakUtc).toLocaleDateString(language === "telugu" ? "te-IN" : "en-US", { timeZone: timezone, weekday: "long", month: "long", day: "numeric" });
+  const cells: Array<[string, string]> = [
+    [String(days), t("రోజులు", "days")],
+    [String(hrs).padStart(2, "0"), t("గంటలు", "hrs")],
+    [String(min).padStart(2, "0"), t("నిమి", "min")],
+  ];
+  if (eclipse.obscuration != null) cells.push([`${Math.round(eclipse.obscuration * 100)}%`, t("కప్పివేత", eclipse.type === "lunar" ? "umbra" : "covered")]);
+  return (
+    <aside className="eclipse-hero relative overflow-hidden rounded-[1.4rem] border border-[hsl(var(--gold)/.3)] text-[hsl(0_0%_95%)] shadow-xl" data-testid="card-countdown">
+      <div className="eclipse-stars pointer-events-none absolute inset-0 opacity-60" />
+      <div className="relative">
+        <div className="flex items-center justify-between border-b border-[hsl(var(--gold)/.25)] px-5 py-3.5">
+          <span className="cel-eyebrow !text-[hsl(var(--gold))]">{t("తదుపరి గ్రహణం", "Next eclipse")}</span>
+          <span className="text-xs opacity-75">{eclipse.type === "solar" ? t("సూర్య గ్రహణం", "Solar") : t("చంద్ర గ్రహణం", "Lunar")} · {kindLabel(eclipse.kind, t)}</span>
+        </div>
+        <div className="pt-4"><DiskMotif type={eclipse.type} /></div>
+        <p className="text-center font-display text-2xl font-semibold" data-testid="text-countdown-title">
+          {kindLabel(eclipse.kind, t)} {eclipse.type === "solar" ? t("సూర్యగ్రహణం", "Solar Eclipse") : t("చంద్రగ్రహణం", "Lunar Eclipse")}
+        </p>
+        <p className="mt-1 text-center text-sm opacity-75">{date} · {t("మధ్యకాలం", "peak")} {eclipse.peakLocal} · {language === "telugu" ? eclipse.nakshatra.nameTelugu : eclipse.nakshatra.name}</p>
+        <div className="flex justify-center gap-2.5 px-4 py-5">
+          {cells.map(([v, l]) => (
+            <div key={l} className="min-w-[62px] rounded-xl border border-[hsl(var(--gold)/.25)] bg-white/[.03] px-2 py-2.5 text-center">
+              <span className="block font-display text-2xl text-[hsl(var(--gold))]">{v}</span>
+              <span className="text-[.6rem] uppercase tracking-[.18em] opacity-70">{l}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </aside>
+  );
+}
+
 function AlignmentDiagram({ type, t }: { type: "solar" | "lunar"; t: (te: string, en: string) => string }) {
   const solar = type === "solar";
   return (
-    <div className="rounded-2xl border border-[hsl(var(--gold)/.22)] bg-[hsl(228_38%_10%)] px-3 py-4 text-[hsl(var(--foreground))]" data-testid={`diagram-${type}`}>
+    <div className="rounded-2xl border border-[hsl(var(--gold)/.22)] bg-[hsl(228_38%_10%)] px-3 py-4 text-[hsl(0_0%_92%)]" data-testid={`diagram-${type}`}>
       <div className="mb-2 flex items-center justify-between">
         <span className="cel-eyebrow !text-[hsl(var(--gold))]">{t("గ్రహాల అమరిక", "Celestial alignment")}</span>
-        <span className="text-xs text-[hsl(var(--muted-foreground))]">{solar ? t("సూర్యుడు · చంద్రుడు · భూమి", "SUN · MOON · EARTH") : t("సూర్యుడు · భూమి · చంద్రుడు", "SUN · EARTH · MOON")}</span>
+        <span className="text-xs opacity-60">{solar ? t("సూర్యుడు · చంద్రుడు · భూమి", "SUN · MOON · EARTH") : t("సూర్యుడు · భూమి · చంద్రుడు", "SUN · EARTH · MOON")}</span>
       </div>
       <svg viewBox="0 0 620 158" className="h-auto w-full overflow-visible" role="img" aria-label={solar ? t("సూర్యగ్రహణంలో సూర్యుడు, చంద్రుడు, భూమి వరుసలో ఉంటాయి", "Sun, Moon, Earth aligned for a solar eclipse") : t("చంద్రగ్రహణంలో సూర్యుడు, భూమి, చంద్రుడు వరుసలో ఉంటాయి", "Sun, Earth, Moon aligned for a lunar eclipse")}>
         <defs>
@@ -84,8 +166,8 @@ function AlignmentDiagram({ type, t }: { type: "solar" | "lunar"; t: (te: string
           <filter id={`glow-${type}`}><feGaussianBlur stdDeviation="7" /></filter>
         </defs>
         <path d="M48 79 H572" stroke="hsl(39 70% 69% / .28)" strokeDasharray="3 9" />
-        <circle cx={solar ? 82 : 82} cy="79" r="32" fill={`url(#sun-${type})`} className="eclipse-pulse" />
-        <circle cx={solar ? 82 : 82} cy="79" r="45" fill="none" stroke="#e8a543" opacity=".18" filter={`url(#glow-${type})`} />
+        <circle cx="82" cy="79" r="32" fill={`url(#sun-${type})`} className="eclipse-pulse" />
+        <circle cx="82" cy="79" r="45" fill="none" stroke="#e8a543" opacity=".18" filter={`url(#glow-${type})`} />
         <circle cx={solar ? 310 : 360} cy="79" r={solar ? 20 : 34} fill={solar ? "#232b3c" : `url(#earth-${type})`} className="eclipse-orbit" />
         {solar ? <circle cx="538" cy="79" r="37" fill={`url(#earth-${type})`} /> : <circle cx="538" cy="79" r="20" fill="#232b3c" className="eclipse-orbit" />}
         <text x="82" y="142" fill="#d8cca6" textAnchor="middle" fontSize="19">{t("సూర్యుడు", "Sun")}</text>
@@ -93,7 +175,7 @@ function AlignmentDiagram({ type, t }: { type: "solar" | "lunar"; t: (te: string
         <text x="538" y="142" fill="#d8cca6" textAnchor="middle" fontSize="19">{solar ? t("భూమి", "Earth") : t("చంద్రుడు", "Moon")}</text>
         <path d={solar ? "M334 79 Q410 52 488 79" : "M400 79 Q455 116 505 79"} fill="none" stroke="#d8a85b" strokeDasharray="4 5" opacity=".65" />
       </svg>
-      <p className="mt-1 text-center text-xs text-[hsl(var(--muted-foreground))]">{solar ? t("చంద్రుడు సూర్యుడు మరియు భూమి మధ్యకు వస్తాడు", "The Moon passes between the Sun and Earth") : t("భూమి నీడలో చంద్రుడు ప్రయాణిస్తాడు", "The Moon travels through Earth's shadow")}</p>
+      <p className="mt-1 text-center text-xs opacity-60">{solar ? t("చంద్రుడు సూర్యుడు మరియు భూమి మధ్యకు వస్తాడు", "The Moon passes between the Sun and Earth") : t("భూమి నీడలో చంద్రుడు ప్రయాణిస్తాడు", "The Moon travels through Earth's shadow")}</p>
     </div>
   );
 }
@@ -120,82 +202,229 @@ function VisibilityGlobe({ location, visibility, t }: { location: { lat: number;
   );
 }
 
-function EclipseCard({ eclipse, location, timezone, userNakshatra, featured = false }: { eclipse: EclipseEvent; location: { lat: number; lon: number; label: string } | null; timezone: string; userNakshatra: number | null; featured?: boolean }) {
+/* One row on the eclipse timeline rail; expands into the full dossier. */
+function EclipseRow({ eclipse, location, timezone, userNakshatra, featured = false, past = false }: {
+  eclipse: EclipseEvent; location: LocationState; timezone: string; userNakshatra: number | null; featured?: boolean; past?: boolean;
+}) {
   const { language, t } = useLanguage();
-  const { data: visibility, isLoading: loadingVisibility, isError: visibilityError } = useQuery<LocalEclipseVisibility>({
-    queryKey: ["/api/eclipses/visibility", eclipse.peakUtc, location?.lat, location?.lon, timezone],
-    enabled: !!location,
-    queryFn: async () => {
-      const p = new URLSearchParams({ type: eclipse.type, peakUtc: eclipse.peakUtc, lat: String(location!.lat), lon: String(location!.lon), timezone });
-      const response = await fetch(`/api/eclipses/visibility?${p}`);
-      if (!response.ok) throw new Error("visibility");
-      return response.json();
-    },
-  });
+  const [open, setOpen] = useState(featured);
+  const { data: visibility, isLoading: loadingVisibility, isError: visibilityError } = useVisibility(eclipse, location, timezone, open);
   const affected = userNakshatra !== null ? eclipse.affectedNakshatras.find((n) => n.index === userNakshatra) : undefined;
-  const date = new Date(eclipse.peakUtc).toLocaleDateString(language === "telugu" ? "te-IN" : "en-US", { timeZone: timezone, weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const peak = new Date(eclipse.peakUtc);
+  const locale = language === "telugu" ? "te-IN" : "en-US";
+  const dateShort = peak.toLocaleDateString(locale, { timeZone: timezone, month: "short", day: "numeric" });
+  const dateSub = peak.toLocaleDateString(locale, { timeZone: timezone, year: "numeric", weekday: "long" });
   return (
-    <article className={`${featured ? "eclipse-hero text-[hsl(var(--foreground))]" : "border bg-card"} relative overflow-hidden rounded-[1.5rem] p-5 shadow-lg md:p-7`} data-testid={`card-eclipse-${eclipse.dateLocal}-${eclipse.type}`}>
-      {featured && <div className="eclipse-stars pointer-events-none absolute inset-0 opacity-70" />}
-      <div className="relative">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={`grid h-12 w-12 place-items-center rounded-full border ${eclipse.type === "solar" ? "border-orange-300/40 bg-orange-400/15" : "border-indigo-300/40 bg-indigo-400/15"}`}>{eclipse.type === "solar" ? <Sun className="h-6 w-6 text-orange-300" /> : <Moon className="h-6 w-6 text-indigo-200" />}</div>
-            <div><p className="cel-eyebrow !text-[hsl(var(--gold))]">{eclipse.type === "solar" ? t("సూర్య గ్రహణం", "Solar eclipse") : t("చంద్ర గ్రహణం", "Lunar eclipse")}</p><h2 className="font-display text-2xl font-semibold">{kindLabel(eclipse.kind, t)}</h2><p className="text-sm opacity-70">{date}</p></div>
-          </div>
-          {affected && <Badge className="border-red-300/40 bg-red-500/15 text-red-700 dark:text-red-200" data-testid={`badge-affected-${eclipse.dateLocal}`}><Star className="mr-1 h-3 w-3" />{t("మీ నక్షత్రం ప్రభావితం", "Your star affected")}</Badge>}
+    <article className={`relative rounded-2xl border transition-colors ${featured ? "border-[hsl(var(--gold)/.55)] bg-[hsl(var(--gold)/.08)]" : past ? "border-border/70 bg-card/40 opacity-90" : "border-[hsl(var(--gold)/.22)] bg-card/60 hover:bg-[hsl(var(--gold)/.05)]"}`} data-testid={`row-eclipse-${eclipse.dateLocal}-${eclipse.type}`}>
+      {/* rail node */}
+      <span className={`absolute -left-[26px] top-7 hidden h-[11px] w-[11px] rounded-full border-2 sm:block ${past ? "border-muted-foreground/50 bg-background" : "border-[hsl(var(--gold))] bg-background"}`} aria-hidden />
+      <button className="flex w-full flex-wrap items-center gap-x-4 gap-y-2 px-4 py-4 text-left sm:px-5" onClick={() => setOpen((o) => !o)} aria-expanded={open} data-testid={`button-expand-${eclipse.dateLocal}-${eclipse.type}`}>
+        <div className="w-24 shrink-0">
+          <span className={`block font-display text-xl font-semibold ${past ? "text-muted-foreground" : "text-[hsl(var(--gold-deep))] dark:text-[hsl(var(--gold))]"}`}>{dateShort}</span>
+          <span className="text-xs text-muted-foreground">{dateSub}</span>
         </div>
-        <div className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_.75fr]">
-          <div className="space-y-4">
-            <AlignmentDiagram type={eclipse.type} t={t} />
-            <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-              <div className="rounded-xl border border-[hsl(var(--gold)/.2)] bg-[hsl(var(--background)/.2)] p-3"><span className="block text-xs opacity-60">{t("గ్రహణ మధ్యకాలం", "Peak local time")}</span><strong>{eclipse.peakLocal}</strong></div>
-              <div className="rounded-xl border border-[hsl(var(--gold)/.2)] bg-[hsl(var(--background)/.2)] p-3"><span className="block text-xs opacity-60">{t("గ్రహణ నక్షత్రం", "Eclipse nakshatra")}</span><strong>{language === "telugu" ? eclipse.nakshatra.nameTelugu : eclipse.nakshatra.name}</strong></div>
-              <div className="rounded-xl border border-[hsl(var(--gold)/.2)] bg-[hsl(var(--background)/.2)] p-3"><span className="block text-xs opacity-60">{t("కప్పివేత", "Obscuration")}</span><strong>{eclipse.obscuration != null ? `${(eclipse.obscuration * 100).toFixed(1)}%` : t("తెలియదు", "—")}</strong></div>
+        <div className="min-w-0 flex-1">
+          <span className="flex items-center gap-2 font-semibold">
+            <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full border ${eclipse.type === "solar" ? "border-orange-400/40 bg-orange-400/15" : "border-indigo-300/40 bg-indigo-400/15"}`}>
+              {eclipse.type === "solar" ? <Sun className="h-3.5 w-3.5 text-orange-500 dark:text-orange-300" /> : <Moon className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-200" />}
+            </span>
+            <span className="sm:truncate">{kindLabel(eclipse.kind, t)} {eclipse.type === "solar" ? t("సూర్యగ్రహణం", "solar eclipse") : t("చంద్రగ్రహణం", "lunar eclipse")}</span>
+          </span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            {t("మధ్యకాలం", "Peak")} <strong className="font-medium text-foreground/80">{eclipse.peakLocal}</strong>
+            {" · "}{language === "telugu" ? eclipse.nakshatra.nameTelugu : eclipse.nakshatra.name}
+            {eclipse.obscuration != null && <> · {(eclipse.obscuration * 100).toFixed(0)}%</>}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {past && <Badge variant="outline" className="text-muted-foreground">{t("గడిచింది", "Past")}</Badge>}
+          {affected && <Badge className="border-red-300/40 bg-red-500/15 text-red-700 dark:text-red-200" data-testid={`badge-affected-${eclipse.dateLocal}`}><Star className="mr-1 h-3 w-3" />{t("మీ నక్షత్రం", "Your star")}</Badge>}
+          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? "rotate-180" : ""}`} />
+        </div>
+      </button>
+      {open && (
+        <div className="border-t border-[hsl(var(--gold)/.18)] px-4 pb-5 pt-4 sm:px-5">
+          <div className="grid gap-5 lg:grid-cols-[1.25fr_.75fr]">
+            <div className="space-y-4">
+              <AlignmentDiagram type={eclipse.type} t={t} />
+              <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
+                <div className="rounded-xl border border-[hsl(var(--gold)/.2)] bg-[hsl(var(--background)/.2)] p-3"><span className="block text-xs opacity-60">{t("గ్రహణ మధ్యకాలం", "Peak local time")}</span><strong>{eclipse.peakLocal}</strong></div>
+                <div className="rounded-xl border border-[hsl(var(--gold)/.2)] bg-[hsl(var(--background)/.2)] p-3"><span className="block text-xs opacity-60">{t("గ్రహణ నక్షత్రం", "Eclipse nakshatra")}</span><strong>{language === "telugu" ? eclipse.nakshatra.nameTelugu : eclipse.nakshatra.name}</strong></div>
+                <div className="rounded-xl border border-[hsl(var(--gold)/.2)] bg-[hsl(var(--background)/.2)] p-3"><span className="block text-xs opacity-60">{t("కప్పివేత", "Obscuration")}</span><strong>{eclipse.obscuration != null ? `${(eclipse.obscuration * 100).toFixed(1)}%` : t("తెలియదు", "—")}</strong></div>
+              </div>
             </div>
+            {location ? (
+              <div className="space-y-3">
+                <VisibilityGlobe location={location} visibility={visibility} t={t} />
+                <div className="rounded-xl border border-[hsl(var(--gold)/.2)] bg-[hsl(var(--background)/.18)] p-3 text-sm">
+                  {loadingVisibility ? <span className="flex items-center gap-2 opacity-70"><Loader2 className="h-4 w-4 animate-spin" />{t("పరిశీలిస్తోంది...", "Checking visibility...")}</span>
+                    : visibilityError ? <span className="text-destructive">{t("వివరాలు లభించలేదు", "Could not check visibility")}</span>
+                    : visibility && <>
+                        {visibility.visible ? (
+                          <p className="font-medium">
+                            {visibility.kindAtLocation && <span className="mr-2 rounded bg-[hsl(var(--gold)/.18)] px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide">{kindLabel(visibility.kindAtLocation, t)}</span>}
+                            {visibility.beginLocal && `${t("ప్రారంభం", "Begins")} ${visibility.beginLocal} · `}{t("మధ్యకాలం", "Peak")} {visibility.peakLocal}{visibility.endLocal && ` · ${t("ముగింపు", "Ends")} ${visibility.endLocal}`}
+                          </p>
+                        ) : <p className="font-medium text-muted-foreground">{past ? t("మీ ప్రాంతంలో కనిపించలేదు", "Was not visible from your location") : t("మీ ప్రాంతంలో కనిపించదు", "Not visible from your location")}</p>}
+                        <p className="mt-1 text-xs opacity-70">{language === "telugu" ? visibility.noteTelugu : visibility.note}</p>
+                      </>}
+                </div>
+              </div>
+            ) : (
+              <div className="grid place-items-center rounded-2xl border border-dashed border-[hsl(var(--gold)/.3)] p-6 text-center">
+                <MapPin className="mb-3 h-6 w-6 text-[hsl(var(--gold))]" />
+                <p className="text-sm font-medium">{t("మీ ప్రాంతాన్ని సెట్ చేయండి", "Set your location")}</p>
+                <p className="mt-1 text-xs opacity-65">{t("మీ ఆకాశంలో గ్రహణం ఎలా కనిపిస్తుందో చూపిస్తాం.", "We will show how the eclipse appears in your sky.")}</p>
+              </div>
+            )}
           </div>
-          {location ? <div className="space-y-3"><VisibilityGlobe location={location} visibility={visibility} t={t} /><div className="rounded-xl border border-[hsl(var(--gold)/.2)] bg-[hsl(var(--background)/.18)] p-3 text-sm">{loadingVisibility ? <span className="flex items-center gap-2 opacity-70"><Loader2 className="h-4 w-4 animate-spin" />{t("పరిశీలిస్తోంది...", "Checking visibility...")}</span> : visibilityError ? <span className="text-red-300">{t("వివరాలు లభించలేదు", "Could not check visibility")}</span> : visibility && <>{visibility.visible ? <p className="font-medium">{visibility.kindAtLocation && <span className="mr-2 rounded bg-[hsl(var(--gold)/.18)] px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide">{kindLabel(visibility.kindAtLocation, t)}</span>}{visibility.beginLocal && `${t("ప్రారంభం", "Begins")} ${visibility.beginLocal} · `}{t("మధ్యకాలం", "Peak")} {visibility.peakLocal}{visibility.endLocal && ` · ${t("ముగింపు", "Ends")} ${visibility.endLocal}`}</p> : <p className="font-medium text-[hsl(var(--muted-foreground))]">{t("మీ ప్రాంతంలో కనిపించదు", "Not visible from your location")}</p>}<p className="mt-1 text-xs opacity-70">{language === "telugu" ? visibility.noteTelugu : visibility.note}</p></>}</div></div> : <div className="grid place-items-center rounded-2xl border border-dashed border-[hsl(var(--gold)/.3)] p-6 text-center"><MapPin className="mb-3 h-6 w-6 text-[hsl(var(--gold))]" /><p className="text-sm font-medium">{t("మీ ప్రాంతాన్ని సెట్ చేయండి", "Set your location")}</p><p className="mt-1 text-xs opacity-65">{t("మీ ఆకాశంలో గ్రహణం ఎలా కనిపిస్తుందో చూపిస్తాం.", "We will show how the eclipse appears in your sky.")}</p></div>}
+          <div className="mt-5">
+            <p className="mb-2 text-xs uppercase tracking-[.18em] opacity-60">{t("ప్రభావిత నక్షత్రాలు", "Affected nakshatras")}</p>
+            <div className="flex flex-wrap gap-1.5">{eclipse.affectedNakshatras.map((n) => <Badge key={n.index} variant={n.severity === "high" ? "default" : "secondary"} data-testid={`badge-nakshatra-${n.index}`}>{language === "telugu" ? n.nameTelugu : n.name}{n.severity === "high" && " · " + t("ప్రధానం", "key")}</Badge>)}</div>
+          </div>
+          {affected && !past && (
+            <div className="mt-5 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm" data-testid={`remedies-${eclipse.dateLocal}`}>
+              <p className="mb-2 flex items-center gap-2 font-semibold"><ShieldCheck className="h-4 w-4" />{t(`మీ జన్మ నక్షత్రం (${nakshatraNamesTelugu[userNakshatra!]}) ప్రభావితం — పరిహారాలు:`, `Your birth star (${nakshatraNames[userNakshatra!]}) is affected — remedies:`)}</p>
+              <ul className="list-disc space-y-1 pl-5">{AFFECTED_REMEDIES.map((r, i) => <li key={i}>{t(r[0], r[1])}</li>)}</ul>
+            </div>
+          )}
         </div>
-        <div className="mt-5"><p className="mb-2 text-xs uppercase tracking-[.18em] opacity-60">{t("ప్రభావిత నక్షత్రాలు", "Affected nakshatras")}</p><div className="flex flex-wrap gap-1.5">{eclipse.affectedNakshatras.map((n) => <Badge key={n.index} variant={n.severity === "high" ? "default" : "secondary"} data-testid={`badge-nakshatra-${n.index}`}>{language === "telugu" ? n.nameTelugu : n.name}{n.severity === "high" && " · " + t("ప్రధానం", "key")}</Badge>)}</div></div>
-        {affected && <div className="mt-5 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm" data-testid={`remedies-${eclipse.dateLocal}`}><p className="mb-2 flex items-center gap-2 font-semibold"><ShieldCheck className="h-4 w-4" />{t(`మీ జన్మ నక్షత్రం (${nakshatraNamesTelugu[userNakshatra!]}) ప్రభావితం — పరిహారాలు:`, `Your birth star (${nakshatraNames[userNakshatra!]}) is affected — remedies:`)}</p><ul className="list-disc space-y-1 pl-5">{AFFECTED_REMEDIES.map((r, i) => <li key={i}>{t(r[0], r[1])}</li>)}</ul></div>}
-      </div>
+      )}
     </article>
   );
 }
 
+/* Parchment "almanac page" for ritual guidance */
 function Guidance({ userAffected }: { userAffected: boolean }) {
   const { t } = useLanguage();
-  return <section id="guidance" className="scroll-mt-24 rounded-[1.5rem] border border-[hsl(var(--gold)/.35)] bg-[hsl(var(--gold)/.07)] p-5 shadow-md md:p-7" data-testid="card-general-guidance">
-    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="cel-eyebrow">{t("ఆచారం మరియు శ్రద్ధ", "Ritual & care")}</p><h2 className="mt-1 font-display text-2xl font-semibold">{t("గ్రహణ సమయంలో పాటించవలసినవి", "What to do during an eclipse")}</h2><p className="mt-2 text-sm text-muted-foreground">{t("ఇది ఇప్పుడు ముందే కనిపించేలా ఉంచిన సంప్రదాయ మార్గదర్శిని. గ్రహణం మీ ప్రాంతంలో కనిపించినప్పుడు మాత్రమే వర్తిస్తుంది.", "A practical traditional guide, placed here before the eclipse list ends. These observances apply where the eclipse is visible.")}</p></div><Badge variant="outline" className="gap-1.5"><Sparkles className="h-3.5 w-3.5" />{userAffected ? t("మీ కోసం పరిహారాలు సిద్ధంగా ఉన్నాయి", "Personal remedies included") : t("కుటుంబ మార్గదర్శిని", "For the household")}</Badge></div>
-    <div className="mt-6 grid gap-6 lg:grid-cols-2"><div><p className="mb-3 flex items-center gap-2 font-semibold text-emerald-700 dark:text-emerald-400"><Check className="h-4 w-4" />{t("చేయవలసినవి", "Do's")}</p><ul className="space-y-3">{GENERAL_DOS.map((d, i) => <li key={i} className="flex gap-3 text-sm"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-600/70" />{t(d[0], d[1])}</li>)}</ul></div><div><p className="mb-3 flex items-center gap-2 font-semibold text-red-700 dark:text-red-400"><TriangleAlert className="h-4 w-4" />{t("చేయకూడనివి", "Don'ts")}</p><ul className="space-y-3">{GENERAL_DONTS.map((d, i) => <li key={i} className="flex gap-3 text-sm"><span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-red-600/70" />{t(d[0], d[1])}</li>)}</ul></div></div>
-    <p className="mt-6 border-t pt-4 text-xs text-muted-foreground">{t("గమనిక: ఇవి సాంప్రదాయ సూచనలు మాత్రమే. వ్యక్తిగత శాంతి పరిహారాల కోసం మీ పురోహితుడిని సంప్రదించండి.", "Note: These are traditional guidelines. For personalized shanti remedies, please consult your purohit.")}</p>
-  </section>;
+  return (
+    <section id="guidance" className="relative scroll-mt-24 overflow-hidden rounded-[1.5rem] p-6 shadow-lg md:p-9" style={{ background: "linear-gradient(160deg,#f6eed9,#efe3c4)", color: "#33270f" }} data-testid="card-general-guidance">
+      <div className="pointer-events-none absolute inset-2.5 rounded-2xl border border-[rgba(120,90,30,.25)]" />
+      <div className="relative">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="cel-eyebrow" style={{ color: "#8a6420" }}>{t("ఆచారం మరియు శ్రద్ధ", "Ritual & care")}</p>
+            <h2 className="mt-1 font-telugu text-2xl font-semibold md:text-3xl">{t("గ్రహణ సమయంలో పాటించవలసినవి", "What to do during an eclipse")}</h2>
+            <p className="mt-2 max-w-2xl text-sm" style={{ color: "#5d4a22" }}>{t("ఇది ముందే కనిపించేలా ఉంచిన సంప్రదాయ మార్గదర్శిని. గ్రహణం మీ ప్రాంతంలో కనిపించినప్పుడు మాత్రమే వర్తిస్తుంది.", "A practical traditional guide. These observances apply where the eclipse is visible.")}</p>
+          </div>
+          <Badge variant="outline" className="gap-1.5 border-[rgba(120,90,30,.4)] text-[#6b5426]"><Sparkles className="h-3.5 w-3.5" />{userAffected ? t("మీ కోసం పరిహారాలు సిద్ధం", "Personal remedies included") : t("కుటుంబ మార్గదర్శిని", "For the household")}</Badge>
+        </div>
+        <div className="mt-6 grid gap-6 md:grid-cols-2">
+          <div>
+            <p className="mb-3 flex items-center gap-2 font-display font-semibold text-[#3d7a4f]"><Check className="h-4 w-4" />{t("చేయవలసినవి", "Do's")}</p>
+            <ul className="space-y-3">{GENERAL_DOS.map((d, i) => <li key={i} className="flex gap-3 text-sm leading-6" style={{ color: "#4c3c1c" }}><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#3d7a4f]" />{t(d[0], d[1])}</li>)}</ul>
+          </div>
+          <div>
+            <p className="mb-3 flex items-center gap-2 font-display font-semibold text-[#a33d2f]"><TriangleAlert className="h-4 w-4" />{t("చేయకూడనివి", "Don'ts")}</p>
+            <ul className="space-y-3">{GENERAL_DONTS.map((d, i) => <li key={i} className="flex gap-3 text-sm leading-6" style={{ color: "#4c3c1c" }}><span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#a33d2f]" />{t(d[0], d[1])}</li>)}</ul>
+          </div>
+        </div>
+        <p className="mt-6 border-t border-[rgba(120,90,30,.25)] pt-4 text-xs" style={{ color: "#7a6335" }}>{t("గమనిక: ఇవి సాంప్రదాయ సూచనలు మాత్రమే. వ్యక్తిగత శాంతి పరిహారాల కోసం మీ పురోహితుడిని సంప్రదించండి.", "Note: These are traditional guidelines. For personalized shanti remedies, please consult your purohit.")}</p>
+      </div>
+    </section>
+  );
+}
+
+function SectionHead({ title, aside, id }: { title: string; aside?: string; id?: string }) {
+  return (
+    <div id={id} className="flex scroll-mt-24 items-baseline justify-between gap-4 border-b border-[hsl(var(--gold)/.25)] pb-3">
+      <h2 className="font-display text-2xl font-semibold md:text-3xl">{title}</h2>
+      {aside && <span className="shrink-0 font-display text-sm text-[hsl(var(--gold-deep))] dark:text-[hsl(var(--gold))]">{aside}</span>}
+    </div>
+  );
 }
 
 export default function EclipsesPage() {
   const { language, t } = useLanguage();
   const [timezone] = useState(getStoredTimezone());
-  const [location, setLocation] = useState<{ lat: number; lon: number; label: string } | null>(null);
+  const [location, setLocation] = useState<LocationState>(null);
   const [manualLat, setManualLat] = useState(""); const [manualLon, setManualLon] = useState("");
+  const [showCoords, setShowCoords] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false); const [geoError, setGeoError] = useState<string | null>(null);
+  const [range, setRange] = useState<"upcoming" | "past">("upcoming");
   const [userNakshatra, setUserNakshatra] = useState<number | null>(() => { const s = localStorage.getItem("panchangam-janma-nakshatra"); return s ? parseInt(s, 10) : null; });
   useEffect(() => { if (userNakshatra !== null) localStorage.setItem("panchangam-janma-nakshatra", String(userNakshatra)); }, [userNakshatra]);
-  const { data, isLoading, isError, refetch } = useQuery<{ eclipses: EclipseEvent[] }>({ queryKey: ["/api/eclipses", timezone], queryFn: async () => { const r = await fetch(`/api/eclipses?timezone=${encodeURIComponent(timezone)}`); if (!r.ok) throw new Error("eclipses"); return r.json(); } });
+  const { data, isLoading, isError, refetch } = useQuery<{ eclipses: EclipseEvent[]; past?: EclipseEvent[] }>({ queryKey: ["/api/eclipses", timezone], queryFn: async () => { const r = await fetch(`/api/eclipses?timezone=${encodeURIComponent(timezone)}`); if (!r.ok) throw new Error("eclipses"); return r.json(); } });
   const eclipses = data?.eclipses ?? [];
+  const pastEclipses = data?.past ?? [];
   const first = eclipses[0];
+  const shown = range === "upcoming" ? eclipses : pastEclipses;
   const useMyLocation = () => { setGeoError(null); if (!navigator.geolocation) { setGeoError(t("మీ బ్రౌజర్ లొకేషన్‌ను సపోర్ట్ చేయదు", "Your browser does not support geolocation")); return; } setGeoLoading(true); navigator.geolocation.getCurrentPosition((p) => { setGeoLoading(false); setLocation({ lat: p.coords.latitude, lon: p.coords.longitude, label: t("మీ ప్రస్తుత ప్రాంతం", "Your current location") }); }, () => { setGeoLoading(false); setGeoError(t("లొకేషన్ పొందలేకపోయాం — దయచేసి నగరాన్ని ఎంచుకోండి", "Could not get your location — please pick a city instead")); }, { timeout: 10000 }); };
   const applyManualCoords = () => { const lat = parseFloat(manualLat), lon = parseFloat(manualLon); if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) { setGeoError(t("సరైన అక్షాంశ/రేఖాంశాలు ఇవ్వండి", "Please enter valid latitude/longitude")); return; } setGeoError(null); setLocation({ lat, lon, label: `${lat.toFixed(3)}, ${lon.toFixed(3)}` }); };
   const affected = useMemo(() => userNakshatra !== null && eclipses.some((e) => e.affectedNakshatras.some((n) => n.index === userNakshatra)), [eclipses, userNakshatra]);
   return <div className="min-h-[100dvh] bg-background">
     <header className="sticky top-0 z-50 border-b border-[hsl(var(--gold)/.2)] bg-background/85 backdrop-blur-xl"><div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 md:px-7"><Link href="/" className="inline-flex h-9 w-9 items-center justify-center rounded-full hover:bg-muted" data-testid="button-back-home"><ArrowLeft className="h-4 w-4" /></Link><div className="flex flex-1 items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-full border border-[hsl(var(--gold)/.5)] bg-[hsl(var(--gold)/.1)]"><Sun className="h-4 w-4 text-[hsl(var(--saffron))]" /></div><div><p className="font-telugu text-lg font-semibold leading-none">{t("తెలుగు పంచాంగం", "Telugu Panchangam")}</p><p className="cel-eyebrow mt-1 text-[.55rem]">{t("ఆకాశపు అల్మనాక్", "Celestial almanac")}</p></div></div><Badge variant="outline" className="hidden gap-1.5 sm:flex"><CircleAlert className="h-3 w-3" />{t("గ్రహణ గమనిక", "Eclipse watch")}</Badge></div></header>
-    <main className="mx-auto max-w-6xl space-y-7 px-4 py-6 md:px-7 md:py-10">
-      <section className="grid gap-7 lg:grid-cols-[1fr_360px] lg:items-end"><div><p className="cel-eyebrow">{t("సూర్యుడు · చంద్రుడు · భూమి", "Sun · Moon · Earth")}</p><h1 className="cel-headline mt-3 max-w-3xl text-4xl md:text-6xl" data-testid="text-page-title">{t("గ్రహణాలను అర్థం చేసుకోండి", "Read the sky differently")}</h1><p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">{t("మీ ఇంటి సంప్రదాయాలకు, మీ జన్మ నక్షత్రానికి, మీ ఆకాశానికి సరిపోయేలా గ్రహణాన్ని ముందుగానే తెలుసుకోండి.", "A considered guide to the eclipse: its celestial alignment, your horizon, and the family traditions that matter.")}</p></div><a href="#guidance" className="group rounded-2xl border border-[hsl(var(--gold)/.35)] bg-[hsl(var(--gold)/.08)] p-4 transition hover:bg-[hsl(var(--gold)/.14)]" data-testid="link-guidance-top"><div className="flex items-center justify-between"><span className="text-sm font-semibold">{t("ముందుగా చదవండి", "Start with the family guide")}</span><ArrowLeft className="h-4 w-4 rotate-180 transition-transform group-hover:translate-x-1" /></div><p className="mt-2 text-xs leading-5 text-muted-foreground">{t("ఏం చేయాలి, ఏం చేయకూడదు — పేజీ చివర దాచలేదు.", "Do's, don'ts, and remedies — never buried at the end.")}</p></a></section>
-      <section className="grid gap-4 lg:grid-cols-[1.15fr_.85fr]"><Card className="overflow-hidden" data-testid="card-location"><CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="h-4 w-4 text-[hsl(var(--gold-deep))]" />{t("మీ ఆకాశం", "Your horizon")}</CardTitle><CardDescription>{t("మీ ప్రాంతంలో గ్రహణం కనిపిస్తుందో, ఏ ఎత్తులో ఉంటుందో తెలుసుకోండి.", "Set a place to see whether the eclipse is visible and how high it rises.")}</CardDescription></CardHeader><CardContent className="space-y-3"><div className="flex flex-wrap gap-2"><Button onClick={useMyLocation} disabled={geoLoading} size="sm" data-testid="button-use-my-location">{geoLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <MapPin className="mr-1.5 h-4 w-4" />}{t("నా లొకేషన్ వాడండి", "Use my location")}</Button><Select onValueChange={(v) => { const c = CITY_PRESETS[parseInt(v, 10)]; setGeoError(null); setLocation({ lat: c.lat, lon: c.lon, label: language === "telugu" ? c.nameTelugu : c.name }); }}><SelectTrigger className="h-9 w-48" data-testid="select-city"><SelectValue placeholder={t("నగరం ఎంచుకోండి", "Pick a city")} /></SelectTrigger><SelectContent>{CITY_PRESETS.map((c, i) => <SelectItem key={c.name} value={String(i)}>{language === "telugu" ? c.nameTelugu : c.name}</SelectItem>)}</SelectContent></Select></div><div className="flex flex-wrap gap-2"><Input placeholder={t("అక్షాంశం (Lat)", "Latitude")} value={manualLat} onChange={(e) => setManualLat(e.target.value)} className="h-9 w-32" data-testid="input-latitude" /><Input placeholder={t("రేఖాంశం (Lon)", "Longitude")} value={manualLon} onChange={(e) => setManualLon(e.target.value)} className="h-9 w-32" data-testid="input-longitude" /><Button variant="outline" size="sm" onClick={applyManualCoords} data-testid="button-apply-coords">{t("సెట్ చేయండి", "Set")}</Button></div>{geoError && <p className="text-sm text-destructive">{geoError}</p>}{location && <p className="text-sm text-muted-foreground" data-testid="text-current-location">{t("ప్రస్తుత ప్రాంతం: ", "Current location: ")}<strong className="text-foreground">{location.label}</strong></p>}</CardContent></Card>
-        <Card data-testid="card-nakshatra"><CardHeader><CardTitle className="flex items-center gap-2"><Star className="h-4 w-4 text-[hsl(var(--gold-deep))]" />{t("మీ జన్మ నక్షత్రం", "Your birth star")}</CardTitle><CardDescription>{t("ప్రభావం ఉంటే వ్యక్తిగత పరిహారాలను చూపిస్తాం.", "We will surface personal remedies if your star is affected.")}</CardDescription></CardHeader><CardContent><Select value={userNakshatra !== null ? String(userNakshatra) : undefined} onValueChange={(v) => setUserNakshatra(parseInt(v, 10))}><SelectTrigger className="w-full" data-testid="select-nakshatra"><SelectValue placeholder={t("నక్షత్రం ఎంచుకోండి", "Select nakshatra")} /></SelectTrigger><SelectContent>{nakshatraNames.map((n, i) => <SelectItem key={n} value={String(i)}>{language === "telugu" ? nakshatraNamesTelugu[i] : n}</SelectItem>)}</SelectContent></Select></CardContent></Card></section>
-      <Guidance userAffected={!!affected} />
-      <section className="space-y-4"><div className="flex items-end justify-between gap-4"><div><p className="cel-eyebrow">{t("రాబోయే తేదీలు", "Upcoming dates")}</p><h2 className="mt-1 font-display text-3xl font-semibold" data-testid="text-upcoming-heading">{t("ఆకాశంలో తదుపరి మార్పులు", "The next changes in the sky")}</h2></div><span className="hidden text-sm text-muted-foreground sm:block">{eclipses.length} {t("గ్రహణాలు", "eclipses")}</span></div>
-        {isLoading ? <div className="space-y-4"><div className="h-80 animate-pulse rounded-[1.5rem] bg-muted" /><div className="h-48 animate-pulse rounded-[1.5rem] bg-muted" /></div> : isError ? <Card className="border-destructive/40"><CardContent className="flex flex-col items-center gap-3 py-12 text-center"><CircleAlert className="h-8 w-8 text-destructive" /><p className="font-medium">{t("గ్రహణ వివరాలు అందుబాటులో లేవు", "Eclipse details are unavailable right now")}</p><Button variant="outline" onClick={() => refetch()}>{t("మళ్లీ ప్రయత్నించండి", "Try again")}</Button></CardContent></Card> : first ? <><EclipseCard eclipse={first} location={location} timezone={timezone} userNakshatra={userNakshatra} featured />{eclipses.slice(1).map((e) => <EclipseCard key={`${e.peakUtc}-${e.type}`} eclipse={e} location={location} timezone={timezone} userNakshatra={userNakshatra} />)}</> : <Card><CardContent className="py-12 text-center text-muted-foreground">{t("రాబోయే గ్రహణాలు లేవు", "No upcoming eclipses found")}</CardContent></Card>}
+    <main className="mx-auto max-w-6xl space-y-10 px-4 py-6 md:px-7 md:py-10">
+
+      {/* HERO — the next eclipse is the headline */}
+      <section className="grid gap-7 lg:grid-cols-[1.1fr_.9fr] lg:items-center">
+        <div>
+          <p className="cel-eyebrow">{t("సూర్యుడు · చంద్రుడు · భూమి", "Sun · Moon · Earth — గ్రహణ గమనిక")}</p>
+          <h1 className="cel-headline mt-3 max-w-3xl text-4xl md:text-6xl" data-testid="text-page-title">{t("ఆకాశం తన మాట నిలబెట్టుకుంటుంది", "The sky keeps its appointments")}</h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">{t("రాబోయే ప్రతి గ్రహణం — మీ ఊరి మీద ఎప్పుడు, మీ జన్మ నక్షత్రానికి ప్రభావం ఉందా, పాటించవలసిన సంప్రదాయాలు ఏమిటి.", "Every eclipse ahead — when it peaks over your town, whether your janma nakshatra is touched, and the observances that matter.")}</p>
+          <div className="mt-6 flex flex-wrap gap-3">
+            <Button asChild data-testid="button-hero-watch"><a href="#eclipse-lab">{t("గ్రహణాన్ని చూడండి", "Watch the next eclipse")}</a></Button>
+            <Button asChild variant="outline" data-testid="button-hero-guide"><a href="#guidance">{t("కుటుంబ మార్గదర్శిని", "Family guide")}</a></Button>
+          </div>
+        </div>
+        {isLoading ? <div className="h-72 animate-pulse rounded-[1.4rem] bg-muted" /> : first ? <CountdownCard eclipse={first} timezone={timezone} /> : null}
       </section>
+
+      {/* YOUR SKY — one compact ribbon */}
+      <section className="rounded-2xl border border-[hsl(var(--gold)/.28)] bg-[hsl(var(--gold)/.05)] px-4 py-3.5 md:px-5" data-testid="card-location">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="cel-eyebrow mr-1 hidden sm:inline">{t("మీ ఆకాశం", "Your sky")}</span>
+          <Button onClick={useMyLocation} disabled={geoLoading} size="sm" variant={location ? "outline" : "default"} className="rounded-full" data-testid="button-use-my-location">{geoLoading ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <MapPin className="mr-1.5 h-4 w-4" />}{t("నా లొకేషన్", "My location")}</Button>
+          <Select onValueChange={(v) => { const c = CITY_PRESETS[parseInt(v, 10)]; setGeoError(null); setLocation({ lat: c.lat, lon: c.lon, label: language === "telugu" ? c.nameTelugu : c.name }); }}>
+            <SelectTrigger className="h-9 w-40 rounded-full" data-testid="select-city"><SelectValue placeholder={t("నగరం", "Pick a city")} /></SelectTrigger>
+            <SelectContent>{CITY_PRESETS.map((c, i) => <SelectItem key={c.name} value={String(i)}>{language === "telugu" ? c.nameTelugu : c.name}</SelectItem>)}</SelectContent>
+          </Select>
+          <Button variant="ghost" size="sm" className="rounded-full text-muted-foreground" onClick={() => setShowCoords((s) => !s)} data-testid="button-toggle-coords">{t("అక్షాంశ/రేఖాంశం", "Lat / Lon")}</Button>
+          <span className="mx-1 hidden h-5 w-px bg-[hsl(var(--gold)/.3)] sm:block" />
+          <span className="cel-eyebrow mr-1 hidden sm:inline">{t("జన్మ నక్షత్రం", "Birth star")}</span>
+          <Select value={userNakshatra !== null ? String(userNakshatra) : undefined} onValueChange={(v) => setUserNakshatra(parseInt(v, 10))}>
+            <SelectTrigger className="h-9 w-44 rounded-full" data-testid="select-nakshatra"><SelectValue placeholder={t("నక్షత్రం ఎంచుకోండి", "Select nakshatra")} /></SelectTrigger>
+            <SelectContent>{nakshatraNames.map((n, i) => <SelectItem key={n} value={String(i)}>{language === "telugu" ? nakshatraNamesTelugu[i] : n}</SelectItem>)}</SelectContent>
+          </Select>
+          {location && <span className="ml-auto text-sm text-muted-foreground" data-testid="text-current-location">📍 <strong className="text-foreground">{location.label}</strong></span>}
+        </div>
+        {showCoords && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Input placeholder={t("అక్షాంశం (Lat)", "Latitude")} value={manualLat} onChange={(e) => setManualLat(e.target.value)} className="h-9 w-32" data-testid="input-latitude" />
+            <Input placeholder={t("రేఖాంశం (Lon)", "Longitude")} value={manualLon} onChange={(e) => setManualLon(e.target.value)} className="h-9 w-32" data-testid="input-longitude" />
+            <Button variant="outline" size="sm" onClick={applyManualCoords} data-testid="button-apply-coords">{t("సెట్ చేయండి", "Set")}</Button>
+          </div>
+        )}
+        {geoError && <p className="mt-2 text-sm text-destructive">{geoError}</p>}
+      </section>
+
+      {/* ECLIPSE LAB */}
+      <section className="space-y-5">
+        <SectionHead title={t("గ్రహణ ప్రయోగశాల", "Eclipse Lab")} aside={t("ఇంటరాక్టివ్", "interactive")} />
+        <EclipsePlayground eclipses={eclipses} location={location} timezone={timezone} />
+      </section>
+
+      {/* TIMELINE — upcoming & past */}
+      <section className="space-y-5">
+        <SectionHead id="timeline" title={t("ఆకాశంలో మార్పులు", "The changes in the sky")} aside={`${shown.length} ${t("గ్రహణాలు", "eclipses")}`} />
+        <div className="flex rounded-full border border-[hsl(var(--gold)/.3)] bg-[hsl(var(--background))] p-1" role="tablist" style={{ width: "fit-content" }}>
+          <button role="tab" aria-selected={range === "upcoming"} onClick={() => setRange("upcoming")} className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${range === "upcoming" ? "bg-[hsl(var(--gold)/.9)] text-[hsl(228_40%_12%)]" : "text-muted-foreground hover:text-foreground"}`} data-testid="tab-upcoming">{t("రాబోయేవి", "Upcoming")}</button>
+          <button role="tab" aria-selected={range === "past"} onClick={() => setRange("past")} className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${range === "past" ? "bg-[hsl(var(--gold)/.9)] text-[hsl(228_40%_12%)]" : "text-muted-foreground hover:text-foreground"}`} data-testid="tab-past">{t("గత సంవత్సరం", "Past year")}</button>
+        </div>
+        {isLoading ? <div className="space-y-4"><div className="h-40 animate-pulse rounded-2xl bg-muted" /><div className="h-20 animate-pulse rounded-2xl bg-muted" /></div>
+          : isError ? <Card className="border-destructive/40"><CardContent className="flex flex-col items-center gap-3 py-12 text-center"><CircleAlert className="h-8 w-8 text-destructive" /><p className="font-medium">{t("గ్రహణ వివరాలు అందుబాటులో లేవు", "Eclipse details are unavailable right now")}</p><Button variant="outline" onClick={() => refetch()}>{t("మళ్లీ ప్రయత్నించండి", "Try again")}</Button></CardContent></Card>
+          : shown.length ? (
+            <div className="relative space-y-3.5 sm:pl-8 sm:before:absolute sm:before:bottom-2 sm:before:left-[13px] sm:before:top-2 sm:before:w-px sm:before:bg-gradient-to-b sm:before:from-[hsl(var(--gold))] sm:before:to-[hsl(var(--gold)/.08)]" data-testid={`rail-${range}`}>
+              {shown.map((e, i) => (
+                <EclipseRow key={`${e.peakUtc}-${e.type}`} eclipse={e} location={location} timezone={timezone} userNakshatra={userNakshatra}
+                  featured={range === "upcoming" && i === 0} past={range === "past"} />
+              ))}
+            </div>
+          ) : <Card><CardContent className="py-12 text-center text-muted-foreground">{range === "upcoming" ? t("రాబోయే గ్రహణాలు లేవు", "No upcoming eclipses found") : t("గత సంవత్సరంలో గ్రహణాలు లేవు", "No eclipses in the past year")}</CardContent></Card>}
+      </section>
+
+      <Guidance userAffected={!!affected} />
+
       <div className="flex items-center justify-center gap-2 pt-3 text-xs text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5 text-[hsl(var(--gold-deep))]" />{t("సంప్రదాయం, ఖగోళ విజ్ఞానం, మీ స్థానిక ఆకాశం — ఒకే చోట.", "Tradition, astronomy, and your local sky — together.")}</div>
     </main>
   </div>;
