@@ -31,6 +31,8 @@ interface PageMeta {
   jsonLd: Record<string, unknown>[];
   bodyHtml: string;
   maxAge: number; // seconds for Cache-Control
+  ogTitle?: string; // punchier share title; falls back to title
+  ogImagePath?: string; // page-specific 1200×630 card; falls back to /og-image.png
 }
 
 // ---- escaping helpers ----
@@ -737,6 +739,8 @@ function skyPage(): PageMeta {
     description:
       "Interactive 3D model of the Sun, Earth and Moon: the Moon's 5.1° tilted orbit, the line of nodes (Rahu & Ketu), eclipse seasons, and a tilt slider that shows why eclipses don't happen every month.",
     canonicalPath: "/sky",
+    ogTitle: "Why are eclipses rare? Drag time in 3D and find out",
+    ogImagePath: "/og-sky.png",
     jsonLd: [
       breadcrumb([
         { name: "Home", path: "/" },
@@ -803,7 +807,7 @@ export function injectSeo(template: string, meta: PageMeta): string {
   html = replaceOrInsert(
     html,
     /<meta\s+property=["']og:title["'][^>]*>/i,
-    `<meta property="og:title" content="${esc(meta.title)}" />`,
+    `<meta property="og:title" content="${esc(meta.ogTitle ?? meta.title)}" />`,
   );
   html = replaceOrInsert(
     html,
@@ -815,11 +819,12 @@ export function injectSeo(template: string, meta: PageMeta): string {
     /<meta\s+property=["']og:url["'][^>]*>/i,
     `<meta property="og:url" content="${esc(canonical)}" />`,
   );
-  // og:image — always the shared 1200×630 card (same for all pages)
+  // og:image — page-specific card when set, else the shared 1200×630 one
+  const ogImage = `${SITE}${meta.ogImagePath ?? "/og-image.png"}`;
   html = replaceOrInsert(
     html,
     /<meta\s+property=["']og:image["'][^>]*>/i,
-    `<meta property="og:image" content="${SITE}/og-image.png" />`,
+    `<meta property="og:image" content="${ogImage}" />`,
   );
   html = replaceOrInsert(
     html,
@@ -845,7 +850,7 @@ export function injectSeo(template: string, meta: PageMeta): string {
   html = replaceOrInsert(
     html,
     /<meta\s+name=["']twitter:image["'][^>]*>/i,
-    `<meta name="twitter:image" content="${SITE}/og-image.png" />`,
+    `<meta name="twitter:image" content="${ogImage}" />`,
   );
   html = replaceOrInsert(
     html,
