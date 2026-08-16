@@ -403,7 +403,9 @@ export default function EclipsesPage() {
           <h1 className="cel-headline mt-3 max-w-3xl text-4xl md:text-6xl" data-testid="text-page-title">{t("ఆకాశం తన మాట నిలబెట్టుకుంటుంది", "The sky keeps its appointments")}</h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg">{t("రాబోయే ప్రతి గ్రహణం — మీ ఊరి మీద ఎప్పుడు, మీ జన్మ నక్షత్రానికి ప్రభావం ఉందా, పాటించవలసిన సంప్రదాయాలు ఏమిటి.", "Every eclipse ahead — when it peaks over your town, whether your janma nakshatra is touched, and the observances that matter.")}</p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button asChild data-testid="button-hero-watch"><a href="#eclipse-lab">{t("గ్రహణాన్ని చూడండి", "Watch the next eclipse")}</a></Button>
+            <Button asChild data-testid="button-hero-watch">
+              <Link href={first ? `/sky?t=${encodeURIComponent(first.peakUtc)}` : "/sky"}>{t("గ్రహణాన్ని చూడండి", "Watch the next eclipse")}</Link>
+            </Button>
             <Button asChild variant="outline" data-testid="button-hero-guide"><a href="#guidance">{t("కుటుంబ మార్గదర్శిని", "Family guide")}</a></Button>
           </div>
         </div>
@@ -457,11 +459,6 @@ export default function EclipsesPage() {
                 <Button asChild data-testid="link-sky-orrery">
                   <Link href="/sky">🪐 {t("3D నమూనా తెరవండి", "Open the 3D model")}</Link>
                 </Button>
-                {first && (
-                  <Button asChild variant="outline" className="border-[hsl(var(--gold)/.4)] bg-transparent text-inherit hover:bg-white/10" data-testid="link-sky-next-eclipse">
-                    <Link href={`/sky?t=${encodeURIComponent(first.peakUtc)}`}>{t("తదుపరి గ్రహణాన్ని 3Dలో చూడండి", "Watch the next eclipse in 3D")}</Link>
-                  </Button>
-                )}
               </div>
             </div>
             <ul className="space-y-2.5 text-sm opacity-85">
