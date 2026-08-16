@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import {
-  ArrowLeft, Check, ChevronDown, CircleAlert, Globe2, Loader2, MapPin, Moon, ShieldCheck,
+  ArrowLeft, Check, ChevronDown, CircleAlert, Globe2, Loader2, MapPin, Moon, Share2, ShieldCheck,
   Sparkles, Star, Sun, TriangleAlert
 } from "lucide-react";
+import { shareEclipseCard } from "@/lib/share-card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -208,7 +209,35 @@ function EclipseRow({ eclipse, location, timezone, userNakshatra, featured = fal
 }) {
   const { language, t } = useLanguage();
   const [open, setOpen] = useState(featured);
+  const [shareState, setShareState] = useState<"idle" | "busy" | "done">("idle");
   const { data: visibility, isLoading: loadingVisibility, isError: visibilityError } = useVisibility(eclipse, location, timezone, open);
+
+  const share = async () => {
+    if (shareState === "busy") return;
+    setShareState("busy");
+    try {
+      const te = language === "telugu";
+      await shareEclipseCard(
+        {
+          type: eclipse.type,
+          kindLabel: kindLabel(eclipse.kind, t),
+          title: `${kindLabel(eclipse.kind, t)} ${eclipse.type === "solar" ? t("సూర్యగ్రహణం", "Solar Eclipse") : t("చంద్రగ్రహణం", "Lunar Eclipse")}`,
+          dateLabel: new Date(eclipse.peakUtc).toLocaleDateString(te ? "te-IN" : "en-US", { timeZone: timezone, weekday: "long", year: "numeric", month: "long", day: "numeric" }),
+          date: eclipse.dateLocal,
+          peakLocal: eclipse.peakLocal,
+          obscuration: eclipse.obscuration,
+          nakshatra: te ? eclipse.nakshatra.nameTelugu : eclipse.nakshatra.name,
+          affectedNakshatras: eclipse.affectedNakshatras.map((n) => (te ? n.nameTelugu : n.name)),
+          timezone,
+        },
+        te ? "telugu" : "english",
+      );
+      setShareState("done");
+      setTimeout(() => setShareState("idle"), 2500);
+    } catch {
+      setShareState("idle");
+    }
+  };
   const affected = userNakshatra !== null ? eclipse.affectedNakshatras.find((n) => n.index === userNakshatra) : undefined;
   const peak = new Date(eclipse.peakUtc);
   const locale = language === "telugu" ? "te-IN" : "en-US";
@@ -278,9 +307,15 @@ function EclipseRow({ eclipse, location, timezone, userNakshatra, featured = fal
               </div>
             )}
           </div>
-          <div className="mt-5">
-            <p className="mb-2 text-xs uppercase tracking-[.18em] opacity-60">{t("ప్రభావిత నక్షత్రాలు", "Affected nakshatras")}</p>
-            <div className="flex flex-wrap gap-1.5">{eclipse.affectedNakshatras.map((n) => <Badge key={n.index} variant={n.severity === "high" ? "default" : "secondary"} data-testid={`badge-nakshatra-${n.index}`}>{language === "telugu" ? n.nameTelugu : n.name}{n.severity === "high" && " · " + t("ప్రధానం", "key")}</Badge>)}</div>
+          <div className="mt-5 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="mb-2 text-xs uppercase tracking-[.18em] opacity-60">{t("ప్రభావిత నక్షత్రాలు", "Affected nakshatras")}</p>
+              <div className="flex flex-wrap gap-1.5">{eclipse.affectedNakshatras.map((n) => <Badge key={n.index} variant={n.severity === "high" ? "default" : "secondary"} data-testid={`badge-nakshatra-${n.index}`}>{language === "telugu" ? n.nameTelugu : n.name}{n.severity === "high" && " · " + t("ప్రధానం", "key")}</Badge>)}</div>
+            </div>
+            <Button variant="outline" size="sm" className="rounded-full" onClick={share} disabled={shareState === "busy"} data-testid={`button-share-eclipse-${eclipse.dateLocal}`}>
+              {shareState === "busy" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : shareState === "done" ? <Check className="mr-1.5 h-4 w-4 text-emerald-600" /> : <Share2 className="mr-1.5 h-4 w-4" />}
+              {shareState === "done" ? t("సిద్ధం!", "Done!") : t("షేర్ చేయండి", "Share")}
+            </Button>
           </div>
           {affected && !past && (
             <div className="mt-5 rounded-xl border border-red-400/30 bg-red-500/10 p-4 text-sm" data-testid={`remedies-${eclipse.dateLocal}`}>

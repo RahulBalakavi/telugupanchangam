@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Check, Copy, Globe, ScrollText } from "lucide-react";
+import { Check, Copy, Globe, Loader2, ScrollText, Share2 } from "lucide-react";
 import type { PanchangData } from "@shared/schema";
 import { useLanguage } from "@/hooks/use-language";
+import { shareSankalpamCard } from "@/lib/share-card";
 
 interface SankalpamProps {
   panchang?: PanchangData;
@@ -220,6 +221,7 @@ export function Sankalpam({ panchang }: SankalpamProps) {
   const [gotra, setGotra] = usePersistedInput(GOTRA_KEY);
   const [personName, setPersonName] = usePersistedInput(NAME_KEY);
   const [copied, setCopied] = useState(false);
+  const [shareState, setShareState] = useState<"idle" | "busy" | "done">("idle");
 
   useEffect(() => {
     if (!isManual && panchang?.timezone) {
@@ -275,6 +277,27 @@ export function Sankalpam({ panchang }: SankalpamProps) {
       setTimeout(() => setCopied(false), 2000);
     } catch {
       // clipboard unavailable — ignore
+    }
+  };
+
+  const share = async () => {
+    if (shareState === "busy") return;
+    setShareState("busy");
+    try {
+      const dateLabel = new Date(panchang.date + "T12:00:00").toLocaleDateString(
+        language === "telugu" ? "te-IN" : "en-US",
+        { weekday: "long", year: "numeric", month: "long", day: "numeric" },
+      );
+      await shareSankalpamCard(
+        language === "telugu" ? fullText.te : fullText.en,
+        dateLabel,
+        panchang.date,
+        language === "telugu" ? "telugu" : "english",
+      );
+      setShareState("done");
+      setTimeout(() => setShareState("idle"), 2500);
+    } catch {
+      setShareState("idle");
     }
   };
 
@@ -375,10 +398,16 @@ export function Sankalpam({ panchang }: SankalpamProps) {
               "Married individuals may add 'Dharmapatni samethasya' before 'mama sahakutumbasya'. The sankalpam declares the time, place and intent at the start of any puja or vratam."
             )}
           </p>
-          <Button variant="outline" size="sm" onClick={copy} data-testid="button-copy-sankalpam">
-            {copied ? <Check className="mr-1.5 h-4 w-4 text-emerald-600" /> : <Copy className="mr-1.5 h-4 w-4" />}
-            {copied ? t("కాపీ అయింది", "Copied") : t("కాపీ చేయండి", "Copy")}
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={copy} data-testid="button-copy-sankalpam">
+              {copied ? <Check className="mr-1.5 h-4 w-4 text-emerald-600" /> : <Copy className="mr-1.5 h-4 w-4" />}
+              {copied ? t("కాపీ అయింది", "Copied") : t("కాపీ చేయండి", "Copy")}
+            </Button>
+            <Button variant="outline" size="sm" onClick={share} disabled={shareState === "busy"} data-testid="button-share-sankalpam">
+              {shareState === "busy" ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : shareState === "done" ? <Check className="mr-1.5 h-4 w-4 text-emerald-600" /> : <Share2 className="mr-1.5 h-4 w-4" />}
+              {shareState === "done" ? t("సిద్ధం!", "Done!") : t("షేర్", "Share")}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>
