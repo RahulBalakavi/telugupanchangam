@@ -1,0 +1,50 @@
+{
+  "packageId": "space.mytelugupanchangam.twa",
+  "host": "mytelugupanchangam.space",
+  "name": "Telugu Panchangam",
+  "launcherName": "Panchangam",
+  "display": "standalone",
+  "themeColor": "#EA580C",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
+  "backgroundColor": "#FFF8F0",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://mytelugupanchangam.space/icons/icon-512.png",
+  "maskableIconUrl": "https://mytelugupanchangam.space/icons/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "./android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Eclipses",
+      "short_name": "Eclipses",
+      "url": "/eclipses",
+      "chosenIconUrl": "https://mytelugupanchangam.space/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://mytelugupanchangam.space/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://mytelugupanchangam.space/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "appVersion": "1.0.0"
+}

@@ -1,0 +1,14 @@
+# Signing material — NEVER commit. Back these two up somewhere safe:
+# losing the keystore means you cannot update the Play Store app.
+android.keystore
+keystore-password.txt
+
+# Bubblewrap build output
+app-release-bundle.aab
+app-release-signed.apk
+app-release-unsigned-aligned.apk
+*.apk
+*.aab
+*.idsig
+build/
+.gradle/
