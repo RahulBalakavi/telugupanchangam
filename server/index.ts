@@ -1,7 +1,19 @@
 import express, { type Request, Response, NextFunction } from "express";
+import * as Sentry from "@sentry/node";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
+
+// Error tracking is opt-in via SENTRY_DSN; without it everything below is a
+// no-op and the app runs exactly as before.
+if (process.env.SENTRY_DSN) {
+  Sentry.init({
+    dsn: process.env.SENTRY_DSN,
+    environment: process.env.NODE_ENV || "development",
+    // Errors only — no performance tracing, keeps us well inside the free tier.
+    tracesSampleRate: 0,
+  });
+}
 
 const app = express();
 const httpServer = createServer(app);
@@ -67,6 +79,9 @@ app.use((req, res, next) => {
     const message = err.message || "Internal Server Error";
 
     console.error("Internal Server Error:", err);
+    if (process.env.SENTRY_DSN && status >= 500) {
+      Sentry.captureException(err);
+    }
 
     if (res.headersSent) {
       return next(err);

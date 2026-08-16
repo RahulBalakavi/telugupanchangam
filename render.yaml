@@ -32,3 +32,14 @@ services:
         sync: false
       - key: VAPID_SUBJECT
         value: mailto:panchangam@mytelugupanchangam.space
+      # Secret key that unlocks GET /api/stats (usage numbers). Any long
+      # random string; endpoint is disabled while unset.
+      - key: STATS_KEY
+        sync: false
+      # Sentry error tracking (both optional; features no-op while unset).
+      # SENTRY_DSN = server project DSN, VITE_SENTRY_DSN = browser project DSN
+      # (baked into the client bundle at build time).
+      - key: SENTRY_DSN
+        sync: false
+      - key: VITE_SENTRY_DSN
+        sync: false

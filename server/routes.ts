@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { timingSafeEqual } from "crypto";
 import { z } from "zod";
 import {
   getPanchangForDate,
@@ -229,6 +230,52 @@ export async function registerRoutes(
         });
       }
       res.status(500).json({ error: "Failed to generate a response." });
+    }
+  });
+
+  // Usage analytics - one beacon per client page view. The device id rides in
+  // the body (navigator.sendBeacon can't set headers). Always answers 204 so a
+  // storage hiccup never surfaces in the client console.
+  const trackSchema = z.object({
+    deviceId: z.string().regex(DEVICE_ID_RE),
+    path: z.string().startsWith("/").max(200),
+    language: z.enum(["telugu", "english"]).optional(),
+    isPwa: z.boolean().default(false),
+    timezone: z.string().max(64).optional(),
+  });
+
+  app.post("/api/track", async (req, res) => {
+    res.status(204).end();
+    const parsed = trackSchema.safeParse(req.body);
+    if (!parsed.success) return;
+    const { deviceId, ...info } = parsed.data;
+    try {
+      // Normalize dynamic segments so page_views stays a small table of page
+      // *types*, not one row per festival slug per day.
+      const path = info.path
+        .replace(/^\/panchangam\/.+$/, "/panchangam/:date")
+        .replace(/\/{2,}/g, "/");
+      await storage.recordVisit(deviceId, { ...info, path });
+    } catch (error) {
+      console.error("Track error:", error);
+    }
+  });
+
+  // Private usage dashboard data. Enabled only when STATS_KEY is set; the key
+  // is checked with a constant-time comparison.
+  app.get("/api/stats", async (req, res) => {
+    const expected = process.env.STATS_KEY;
+    if (!expected) return res.status(404).json({ error: "Not found" });
+    const given = (req.query.key as string) || req.header("X-Stats-Key") || "";
+    const a = Buffer.from(given);
+    const b = Buffer.from(expected);
+    const ok = a.length === b.length && timingSafeEqual(a, b);
+    if (!ok) return res.status(404).json({ error: "Not found" });
+    try {
+      res.json(await storage.getUsageStats());
+    } catch (error) {
+      console.error("Stats error:", error);
+      res.status(500).json({ error: "Failed to compute stats" });
     }
   });
 

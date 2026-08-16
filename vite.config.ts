@@ -15,6 +15,9 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // Ship .map files alongside bundles so error monitoring shows original
+    // source locations instead of minified frames.
+    sourcemap: true,
   },
   server: {
     fs: {

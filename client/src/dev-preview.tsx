@@ -26,6 +26,7 @@ const basePanchang: PanchangData = {
   isAdhikaMasa: false, teluguYear: 1948, samvatsaraName: "Vishvavasu", samvatsaraNameTelugu: "విశ్వావసు",
   tithi: "Shukla Panchami", tithiTelugu: "శుద్ధ పంచమి", tithiNumber: 5, tithiStartTime: "06:12", tithiEndTime: "04:48 (+1)",
   paksha: "Shukla", pakshaTelugu: "శుద్ధ", nakshatra: "Magha", nakshatraTelugu: "మఘ",
+  yoga: "Parigha", yogaTelugu: "పరిఘ", karana: "Bava", karanaTelugu: "బవ",
   nakshatraStartTime: "08:30", nakshatraEndTime: "06:05 (+1)", sunrise: "05:52", sunset: "18:48",
   timezone: "Asia/Kolkata", moonPhase: 0.18, isSpecialDay: true, specialDayInfo: "Auspicious Day", specialDayInfoTelugu: "శుభ దినం",
 };
