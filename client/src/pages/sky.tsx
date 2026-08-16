@@ -32,11 +32,12 @@ const MOON_TILT_DEG = 5.145;
 const DEG = Math.PI / 180;
 const DAY_MS = 86400_000;
 
-// Approximate Lahiri ayanamsa, matching the server's convention closely
-// enough for a nakshatra readout.
+// Lahiri ayanamsa — the SAME formula as server/panchang.ts getAyanamsa, so
+// the nakshatra shown here always agrees with the eclipses/panchangam pages.
 function ayanamsa(tMs: number): number {
-  const years = (tMs - Date.UTC(2000, 0, 1)) / (365.25 * DAY_MS);
-  return 23.85 + years * 0.01397;
+  const d = new Date(tMs);
+  const year = d.getFullYear() + (d.getMonth() + 1) / 12;
+  return 23.85 + (year - 2000) * (50.3 / 3600);
 }
 
 interface Sample {
@@ -266,12 +267,34 @@ export default function SkyPage() {
       }
     }
 
-    // Connector from the Moon to the nakshatra the eclipse occurs in.
-    const connectorMat = new THREE.LineBasicMaterial({ color: 0xff6655, transparent: true, opacity: 0.9 });
-    const connectorGeom = new THREE.BufferGeometry();
-    const connector = new THREE.Line(connectorGeom, connectorMat);
-    connector.visible = false;
-    scene.add(connector);
+    // Eclipse emphasis: glowing wedges over the affected ring segments plus
+    // connector lines from the Moon to each affected star. Index 0 = janma
+    // (red), 1..2 = anujanma/trijanma (gold).
+    const wedgeColors = [0xff5544, 0xe8b45a, 0xe8b45a];
+    const wedges = wedgeColors.map((color) => {
+      const geom = new THREE.RingGeometry(R_EARTH_ORBIT + 2.2, R_EARTH_ORBIT + 5.4, 24, 1, 0, segDeg * DEG);
+      const mesh = new THREE.Mesh(
+        geom,
+        new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.22, side: THREE.DoubleSide, depthWrite: false }),
+      );
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.visible = false;
+      scene.add(mesh);
+      return mesh;
+    });
+    const connectors = wedgeColors.map((color, i) => {
+      const mat = new THREE.LineBasicMaterial({ color, transparent: true, opacity: i === 0 ? 0.95 : 0.55 });
+      const geom = new THREE.BufferGeometry();
+      const line = new THREE.Line(geom, mat);
+      line.visible = false;
+      scene.add(line);
+      return { line, geom };
+    });
+    /** Aim a wedge at nakshatra index i (rotation about Y sets thetaStart). */
+    const aimWedge = (mesh: THREE.Mesh, i: number) => {
+      mesh.rotation.set(-Math.PI / 2, 0, 0);
+      mesh.rotateZ((i * segDeg + ay0) * DEG);
+    };
 
     // Earth + Moon + Moon orbit plane + node line
     const earth = new THREE.Mesh(
@@ -403,8 +426,11 @@ export default function SkyPage() {
         const effLat = Math.abs(s.moonLat * tiltF);
         const nearNew = s.phase < 12 || s.phase > 348;
         const nearFull = Math.abs(s.phase - 180) < 12;
-        const solarNow = nearNew && effLat < 1.5;
-        const lunarNow = nearFull && effLat < 1.0;
+        // Ecliptic limits: partial solar eclipses occur up to |lat| ≈ 1.55°,
+        // penumbral lunar up to ≈ 1.5° — so a jump to any real eclipse peak
+        // reliably lights up.
+        const solarNow = nearNew && effLat < 1.6;
+        const lunarNow = nearFull && effLat < 1.55;
         const ringColor = solarNow || lunarNow ? 0xff5544 : season ? 0x77e0b0 : 0xd9a24a;
         (moonRing.material as THREE.MeshBasicMaterial).color.setHex(ringColor);
         (nodeLineMat as THREE.LineBasicMaterial).opacity = season ? 1 : 0.45;
@@ -449,10 +475,17 @@ export default function SkyPage() {
               sprite.scale.set(3.6, 0.9, 1);
             }
           }
-          connector.visible = eclipseNow;
-          if (eclipseNow) {
-            connectorGeom.setFromPoints([moon.position.clone(), nakLabelPos[janma].clone()]);
-          }
+          const affectedIdx = [janma, anujanma, trijanma];
+          wedges.forEach((w, i) => {
+            w.visible = eclipseNow;
+            if (eclipseNow) aimWedge(w, affectedIdx[i]);
+          });
+          connectors.forEach((c, i) => {
+            c.line.visible = eclipseNow;
+            if (eclipseNow) {
+              c.geom.setFromPoints([moon.position.clone(), nakLabelPos[affectedIdx[i]].clone()]);
+            }
+          });
           const phaseName =
             s.phase < 12 || s.phase > 348
               ? t("అమావాస్య (New Moon)", "New Moon")
@@ -494,13 +527,14 @@ export default function SkyPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [language]);
 
+  // Land paused exactly on the eclipse peak, so the highlight and the
+  // affected-stars panel are on screen for as long as the user wants.
   const jumpToNextEclipse = () => {
     const next = marks.find((m) => m.t > timeRef.current + DAY_MS);
     if (next) {
-      timeRef.current = next.t - 2 * DAY_MS;
+      timeRef.current = next.t;
       setTimeMs(timeRef.current);
-      setPlaying(true);
-      setSpeed(0.5);
+      setPlaying(false);
     }
   };
 
@@ -544,14 +578,22 @@ export default function SkyPage() {
                     : t("చంద్రగ్రహణం!", "LUNAR ECLIPSE!")}
                 </p>
                 {hud.affected && (
-                  <p className="max-w-[260px] text-xs leading-snug text-amber-200/90" data-testid="text-affected-stars">
-                    {t("ప్రభావిత నక్షత్రాలు", "Affected stars")}:{" "}
-                    <span className="text-red-300 font-medium">{hud.affected[0]}</span>
-                    {" · "}{hud.affected[1]}{" · "}{hud.affected[2]}
-                    <span className="block text-white/45">
-                      {t("(జన్మ · అనుజన్మ · త్రిజన్మ)", "(janma · anujanma · trijanma)")}
-                    </span>
-                  </p>
+                  <div
+                    className="max-w-[290px] space-y-1.5 rounded-lg border border-amber-400/25 bg-black/60 p-2.5 text-xs leading-snug backdrop-blur pointer-events-auto"
+                    data-testid="text-affected-stars"
+                  >
+                    <p className="text-amber-200/90 font-medium">
+                      {t("ప్రభావిత నక్షత్రాలు", "Affected stars")}:{" "}
+                      <span className="text-red-300">{hud.affected[0]}</span>
+                      {" · "}{hud.affected[1]}{" · "}{hud.affected[2]}
+                    </p>
+                    <p className="text-white/65">
+                      {t(
+                        `ఈ క్షణంలో చంద్రుడు ${hud.affected[0]} నక్షత్రంలో ఉన్నాడు — అందుకే ఈ గ్రహణం "${hud.affected[0]}లో" జరుగుతుంది (జన్మ నక్షత్రం, ఎరుపు). నక్షత్రాలను 9 చొప్పున లెక్కిస్తే ${hud.affected[0]} స్థానమే 10వదిగా ${hud.affected[1]}కు, 19వదిగా ${hud.affected[2]}కు వస్తుంది — ఇవి అనుజన్మ, త్రిజన్మ (బంగారు రంగు). ఈ మూడు నక్షత్రాలలో జన్మించినవారికి గ్రహణ శాంతి చెప్పబడింది.`,
+                        `Right now the Moon is standing in ${hud.affected[0]} — so this eclipse "occurs in" ${hud.affected[0]} (its janma star, red). Nakshatras repeat in cycles of 9: counting from ${hud.affected[0]}, the 10th is ${hud.affected[1]} and the 19th is ${hud.affected[2]} — the same seat in the next two cycles (anujanma & trijanma, gold). People born under these three stars are traditionally advised grahana-shanti remedies.`,
+                      )}
+                    </p>
+                  </div>
                 )}
               </div>
             ) : hud.season ? (
