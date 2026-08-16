@@ -849,6 +849,57 @@ export function buildSitemap(): string {
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${body}\n</urlset>\n`;
 }
 
+// ---- llms.txt (https://llmstxt.org) ----
+// A curated markdown index for AI crawlers and answer engines. Generated
+// dynamically so festival dates, the next eclipse, and today's Rahu Kalam
+// stay current without a redeploy.
+export function buildLlmsTxt(): string {
+  const today = getTodayInTimezone(TZ);
+  const todayStr = today.toISOString().slice(0, 10);
+  const periods = getDayPeriods(today, TZ);
+  const nextEclipse = getUpcomingEclipses(TZ, 1)[0];
+
+  const upcomingFestivals = getAllFestivals()
+    .filter((f) => f.date >= todayStr)
+    .slice(0, 12);
+
+  const festivalLines = upcomingFestivals
+    .map((f) => `- [${f.name} (${f.nameTelugu}) — ${formatDate(f.date)}](${abs(`/festivals/${f.id}`)})`)
+    .join("\n");
+
+  const vrathamLines = VRATHAMS.map(
+    (v) => `- [${v.nameEn} (${v.nameTe})](${abs(`/vrathams/${v.slug}`)})`,
+  ).join("\n");
+
+  return `# Telugu Panchangam (తెలుగు పంచాంగం)
+
+> Bilingual (Telugu & English) Hindu almanac for the Telugu calendar: daily panchangam (tithi, nakshatra, yoga, karana, paksha, masa, samvatsara), festival dates, vratham (puja) procedures, eclipse (grahanam) timings, and daily auspicious/inauspicious periods (Rahu Kalam, Yamagandam, Gulika Kalam, Abhijit and Brahma Muhurtam). All timings are computed from astronomical data (astronomy-engine, Lahiri ayanamsa) rather than pre-typed tables, and adjust to the visitor's city and timezone. Content pages are server-rendered, so every URL below returns full readable HTML without JavaScript.
+
+Key facts:
+- Today (${formatDate(todayStr)}, IST): Rahu Kalam ${fmt12(periods.rahuKalam.start)}–${fmt12(periods.rahuKalam.end)}, Yamagandam ${fmt12(periods.yamagandam.start)}–${fmt12(periods.yamagandam.end)}, Gulika Kalam ${fmt12(periods.gulikaKalam.start)}–${fmt12(periods.gulikaKalam.end)}.
+${nextEclipse ? `- Next eclipse: ${eclipseName(nextEclipse)} on ${formatDate(nextEclipse.dateLocal)}, peak ${nextEclipse.peakLocal} IST.\n` : ""}- Times on interactive pages adapt to the visitor's timezone; server-rendered content uses IST.
+
+## Daily panchangam
+- [Today's panchangam & muhurtam](${abs("/today")}): tithi, nakshatra, yoga, karana, sunrise/sunset, special observances for today
+- [Rahu Kalam today](${abs("/rahu-kalam")}): daily & weekly Rahu Kalam, Yamagandam, Gulika Kalam, Abhijit and Brahma Muhurtam
+- [Any date's panchangam](${abs("/panchangam/" + todayStr)}): replace the date in the URL (YYYY-MM-DD)
+
+## Eclipses (గ్రహణాలు)
+- [Eclipses — dates, timings, nakshatra effects](${abs("/eclipses")}): upcoming and past-year solar/lunar eclipses with IST peak times, affected janma nakshatras, remedies, and city-wise visibility
+
+## Upcoming festivals
+${festivalLines}
+- [All festival dates](${abs("/festivals")})
+
+## Vratham (puja) guides
+${vrathamLines}
+
+## Optional
+- [Privacy policy](${abs("/privacy.html")})
+- [Sitemap](${abs("/sitemap.xml")})
+`;
+}
+
 // ---- wiring ----
 export function registerSeoRoutes(app: Express, distPath: string): void {
   const templatePath = path.resolve(distPath, "index.html");
@@ -861,6 +912,13 @@ export function registerSeoRoutes(app: Express, distPath: string): void {
       .type("application/xml")
       .set("Cache-Control", "public, max-age=3600")
       .send(buildSitemap());
+  });
+
+  app.get("/llms.txt", (_req: Request, res: Response) => {
+    res
+      .type("text/plain; charset=utf-8")
+      .set("Cache-Control", "public, max-age=3600")
+      .send(buildLlmsTxt());
   });
 
   app.get(

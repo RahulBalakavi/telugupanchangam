@@ -46,3 +46,6 @@ User-agent: CCBot
 Allow: /
 
 Sitemap: https://mytelugupanchangam.space/sitemap.xml
+
+# Curated index for LLMs and answer engines (https://llmstxt.org)
+# https://mytelugupanchangam.space/llms.txt
