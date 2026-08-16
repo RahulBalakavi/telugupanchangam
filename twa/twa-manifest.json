@@ -21,15 +21,8 @@
     "alias": "android"
   },
   "appVersionName": "1.0.0",
-  "appVersionCode": 1,
-  "shortcuts": [
-    {
-      "name": "Eclipses",
-      "short_name": "Eclipses",
-      "url": "/eclipses",
-      "chosenIconUrl": "https://mytelugupanchangam.space/icons/icon-192.png"
-    }
-  ],
+  "appVersionCode": 2,
+  "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://mytelugupanchangam.space/manifest.json",
   "fallbackType": "customtabs",
@@ -46,5 +39,6 @@
   "fingerprints": [],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
+  "displayOverride": [],
   "appVersion": "1.0.0"
 }

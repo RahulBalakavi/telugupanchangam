@@ -1,0 +1,17 @@
+#!/usr/bin/expect -f
+# Drives `bubblewrap build` through its interactive prompts.
+set timeout 900
+set ks_pass [exec cat keystore-password.txt]
+
+spawn npx @bubblewrap/cli build --skipPwaValidation
+
+expect {
+  -re {regenerate.*\(Y/n\)} { send "\r"; exp_continue }
+  -re {versionName for the new App version} { send "1.0.0\r"; exp_continue }
+  -re {versionCode} { send "\r"; exp_continue }
+  -re {Password for the Key Store} { send "$ks_pass\r"; exp_continue }
+  -re {Password for the Key} { send "$ks_pass\r"; exp_continue }
+  eof
+}
+catch wait result
+exit [lindex $result 3]

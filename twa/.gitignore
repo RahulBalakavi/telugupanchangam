@@ -12,3 +12,5 @@ app-release-unsigned-aligned.apk
 *.idsig
 build/
 .gradle/
+build.log
+build.expect.log
