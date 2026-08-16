@@ -13,7 +13,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useLanguage } from "@/hooks/use-language";
 import { getStoredTimezone } from "@/components/timezone-selector";
-import EclipsePlayground from "@/components/eclipse-playground";
 import { nakshatraNames, nakshatraNamesTelugu } from "@shared/schema";
 
 interface EclipseNakshatraInfo { index: number; name: string; nameTelugu: string; severity: "high" | "medium"; reason: string; }
@@ -276,6 +275,12 @@ function EclipseRow({ eclipse, location, timezone, userNakshatra, featured = fal
           <div className="grid gap-5 lg:grid-cols-[1.25fr_.75fr]">
             <div className="space-y-4">
               <AlignmentDiagram type={eclipse.type} t={t} />
+              <Link href={`/sky?t=${encodeURIComponent(eclipse.peakUtc)}`}>
+                <span className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-[hsl(var(--gold)/.35)] bg-[hsl(var(--gold)/.08)] px-3.5 py-1.5 text-xs font-medium text-[hsl(var(--gold-deep))] hover:bg-[hsl(var(--gold)/.15)] dark:text-[hsl(var(--gold))]" data-testid={`link-sky-${eclipse.dateLocal}-${eclipse.type}`}>
+                  🪐 {t("ఈ గ్రహణాన్ని 3D నమూనాలో చూడండి", "Watch this eclipse in the 3D model")}
+                  <span aria-hidden>→</span>
+                </span>
+              </Link>
               <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
                 <div className="rounded-xl border border-[hsl(var(--gold)/.2)] bg-[hsl(var(--background)/.2)] p-3"><span className="block text-xs opacity-60">{t("గ్రహణ మధ్యకాలం", "Peak local time")}</span><strong>{eclipse.peakLocal}</strong></div>
                 <div className="rounded-xl border border-[hsl(var(--gold)/.2)] bg-[hsl(var(--background)/.2)] p-3"><span className="block text-xs opacity-60">{t("గ్రహణ నక్షత్రం", "Eclipse nakshatra")}</span><strong>{language === "telugu" ? eclipse.nakshatra.nameTelugu : eclipse.nakshatra.name}</strong></div>
@@ -433,19 +438,44 @@ export default function EclipsesPage() {
         {geoError && <p className="mt-2 text-sm text-destructive">{geoError}</p>}
       </section>
 
-      {/* ECLIPSE LAB */}
-      <section className="space-y-5">
-        <SectionHead title={t("గ్రహణ ప్రయోగశాల", "Eclipse Lab")} aside={t("ఇంటరాక్టివ్", "interactive")} />
-        <EclipsePlayground eclipses={eclipses} location={location} timezone={timezone} />
-        <Link href="/sky">
-          <span
-            className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--gold)/.35)] bg-[hsl(var(--gold)/.08)] px-4 py-2 text-sm text-[hsl(var(--gold-deep))] hover:bg-[hsl(var(--gold)/.15)] cursor-pointer"
-            data-testid="link-sky-orrery"
-          >
-            🪐 {t("గ్రహణాలు ఎందుకు అరుదు? — 3D నమూనా చూడండి", "Why are eclipses rare? Explore the 3D model")}
-            <span aria-hidden>→</span>
-          </span>
-        </Link>
+      {/* ECLIPSE LAB — now the 3D orrery on /sky */}
+      <section id="eclipse-lab" className="scroll-mt-24 space-y-5">
+        <SectionHead title={t("గ్రహణ ప్రయోగశాల", "Eclipse Lab")} aside={t("3D ఇంటరాక్టివ్", "3D interactive")} />
+        <div className="eclipse-hero relative overflow-hidden rounded-[1.4rem] border border-[hsl(var(--gold)/.3)] text-[hsl(0_0%_95%)] shadow-xl" data-testid="card-sky-cta">
+          <div className="eclipse-stars pointer-events-none absolute inset-0 opacity-60" />
+          <div className="relative grid gap-6 p-6 md:grid-cols-[1.2fr_.8fr] md:items-center md:p-9">
+            <div>
+              <p className="cel-eyebrow !text-[hsl(var(--gold))]">{t("సూర్యుడు · భూమి · చంద్రుడు — నిజమైన కోణాలు", "Sun · Earth · Moon — real angles")}</p>
+              <h3 className="mt-2 font-display text-2xl font-semibold md:text-3xl">{t("గ్రహణాలు ఎందుకు అరుదు? 3D నమూనాలో చూడండి", "Why are eclipses rare? See it in 3D")}</h3>
+              <p className="mt-3 max-w-xl text-sm leading-6 opacity-80">
+                {t(
+                  "కాలాన్ని లాగండి, చంద్రుని వాలిన కక్ష్యను చూడండి, రాహు–కేతు నోడ్స్ సూర్యుని వైపు తిరిగినప్పుడు గ్రహణం ఎలా ఏర్పడుతుందో గమనించండి. గ్రహణ సమయంలో ప్రభావిత నక్షత్రాలు కూడా వెలుగుతాయి.",
+                  "Drag through time, watch the Moon's tilted orbit, and see an eclipse form only when the Rahu–Ketu nodes swing toward the Sun. During an eclipse, the affected nakshatras light up on the zodiac ring.",
+                )}
+              </p>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Button asChild data-testid="link-sky-orrery">
+                  <Link href="/sky">🪐 {t("3D నమూనా తెరవండి", "Open the 3D model")}</Link>
+                </Button>
+                {first && (
+                  <Button asChild variant="outline" className="border-[hsl(var(--gold)/.4)] bg-transparent text-inherit hover:bg-white/10" data-testid="link-sky-next-eclipse">
+                    <Link href={`/sky?t=${encodeURIComponent(first.peakUtc)}`}>{t("తదుపరి గ్రహణాన్ని 3Dలో చూడండి", "Watch the next eclipse in 3D")}</Link>
+                  </Button>
+                )}
+              </div>
+            </div>
+            <ul className="space-y-2.5 text-sm opacity-85">
+              {[
+                t("చంద్రుని 5° వాలు స్లయిడర్‌తో మార్చి చూడండి", "Slide the Moon's 5° tilt and see eclipses vanish"),
+                t("27 నక్షత్రాల వలయం — గ్రహణ నక్షత్రం ఎరుపులో", "The 27-nakshatra ring — the eclipse star glows red"),
+                t("జన్మ, అనుజన్మ, త్రిజన్మ నక్షత్రాలు ఎందుకు ప్రభావితమో వివరణ", "Why janma, anujanma & trijanma stars are affected"),
+                t("టైమ్‌లైన్‌పై నిజమైన గ్రహణ తేదీల గుర్తులు", "Real eclipse dates marked on the timeline"),
+              ].map((line, i) => (
+                <li key={i} className="flex gap-2.5"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-[hsl(var(--gold))]" />{line}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
       </section>
 
       {/* TIMELINE — upcoming & past */}

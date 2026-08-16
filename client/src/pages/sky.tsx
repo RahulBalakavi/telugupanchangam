@@ -7,7 +7,7 @@
 // lets you flatten the orbit and watch eclipses fire every fortnight.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { ArrowLeft, FastForward, Pause, Play, Rewind } from "lucide-react";
@@ -129,10 +129,20 @@ export default function SkyPage() {
   const { t, language } = useLanguage();
   const mountRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
-  const [playing, setPlaying] = useState(true);
+  // ?t=<ISO or epoch ms> deep-links to a moment (e.g. an eclipse peak) and starts paused.
+  const initialTime = useMemo(() => {
+    const p = new URLSearchParams(window.location.search).get("t");
+    if (!p) return null;
+    const parsed = /^\d+$/.test(p) ? Number(p) : Date.parse(p);
+    if (!Number.isFinite(parsed)) return null;
+    const lo = Date.now() - 366 * DAY_MS;
+    const hi = Date.now() + 500 * DAY_MS;
+    return Math.min(hi, Math.max(lo, parsed));
+  }, []);
+  const [playing, setPlaying] = useState(initialTime === null);
   const [speed, setSpeed] = useState(1); // days per second
   const [tilt, setTilt] = useState(1); // 0..1 fraction of real 5.1°
-  const [timeMs, setTimeMs] = useState(() => Date.now());
+  const [timeMs, setTimeMs] = useState(() => initialTime ?? Date.now());
   const [hud, setHud] = useState<HudState | null>(null);
   const [marks, setMarks] = useState<EclipseMark[]>([]);
 
@@ -538,18 +548,32 @@ export default function SkyPage() {
     }
   };
 
+  const [, navigate] = useLocation();
+  const goBack = () => {
+    // Back through history when the user navigated here inside the app;
+    // external arrivals (Reddit, search) land on /eclipses instead of leaving the site.
+    const depth = Number(sessionStorage.getItem("nav-depth") || "0");
+    if (depth > 1) {
+      window.history.back();
+    } else {
+      navigate("/eclipses");
+    }
+  };
+
   const pct = ((timeMs - rangeStart) / (rangeEnd - rangeStart)) * 100;
 
   return (
     <div className="fixed inset-0 flex flex-col bg-[#050510] text-[#e8dcc0]">
       <header className="flex items-center justify-between gap-3 px-4 py-2.5 border-b border-white/10 bg-black/30 backdrop-blur z-10">
         <div className="flex items-center gap-3 min-w-0">
-          <Link href="/eclipses">
-            <span className="inline-flex items-center gap-1.5 text-sm text-white/60 hover:text-white cursor-pointer" data-testid="link-back-eclipses">
-              <ArrowLeft className="h-4 w-4" />
-              <span className="hidden sm:inline">{t("గ్రహణాలు", "Eclipses")}</span>
-            </span>
-          </Link>
+          <button
+            onClick={goBack}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-white/15 px-3 py-1.5 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+            data-testid="link-back-eclipses"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {t("వెనుకకు", "Back")}
+          </button>
           <h1 className="text-base md:text-lg font-semibold truncate" data-testid="text-sky-title">
             {t("గ్రహణాలు ఎందుకు అరుదు? — 3D దృశ్యం", "Why are eclipses rare? — a 3D answer")}
           </h1>

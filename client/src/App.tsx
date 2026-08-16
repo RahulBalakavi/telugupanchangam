@@ -18,7 +18,13 @@ const SkyPage = lazy(() => import("@/pages/sky"));
 
 function Router() {
   const [location] = useLocation();
-  useEffect(() => trackPageview(location), [location]);
+  useEffect(() => {
+    trackPageview(location);
+    // Route-change depth for this tab — /sky's Back button uses it to decide
+    // whether history.back() stays inside the app or would leave the site.
+    const depth = Number(sessionStorage.getItem("nav-depth") || "0");
+    sessionStorage.setItem("nav-depth", String(depth + 1));
+  }, [location]);
   return (
     <Switch>
       <Route path="/" component={Home} />
