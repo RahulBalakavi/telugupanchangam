@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { trackPageview } from "@/lib/track";
 import { queryClient } from "./lib/queryClient";
@@ -12,6 +12,9 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import EclipsesPage from "@/pages/eclipses";
 import RahuKalamPage from "@/pages/rahu-kalam";
+
+// three.js + the orrery only load when someone opens /sky.
+const SkyPage = lazy(() => import("@/pages/sky"));
 
 function Router() {
   const [location] = useLocation();
@@ -27,6 +30,11 @@ function Router() {
       <Route path="/vrathams/:slug" component={Home} />
       <Route path="/eclipses" component={EclipsesPage} />
       <Route path="/rahu-kalam" component={RahuKalamPage} />
+      <Route path="/sky">
+        <Suspense fallback={<div className="min-h-screen grid place-items-center bg-[#050510] text-white/50 text-sm">Loading the sky…</div>}>
+          <SkyPage />
+        </Suspense>
+      </Route>
       <Route component={NotFound} />
     </Switch>
   );

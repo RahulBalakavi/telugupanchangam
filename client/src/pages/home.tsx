@@ -20,7 +20,7 @@ import { FestivalDetail } from "@/components/festival-detail";
 import { ChatWidget } from "@/components/chat-widget";
 import { vrathamForDate, vrathamBySlug, type Vratham } from "@/lib/vrathams";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Sparkles, Settings, Flower2, Sun, Moon } from "lucide-react";
+import { Calendar, CalendarPlus, Sparkles, Settings, Flower2, Sun, Moon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/hooks/use-language";
@@ -324,6 +324,15 @@ export default function Home() {
                 onViewInCalendar={navigateToFestival}
               />
             ) : (
+              <>
+              <div className="flex justify-end">
+                <a href="/calendar.ics" data-testid="link-subscribe-calendar">
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <CalendarPlus className="h-4 w-4" />
+                    {t("మీ క్యాలెండర్‌కు జోడించండి", "Subscribe in your calendar")}
+                  </Button>
+                </a>
+              </div>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <FestivalsList
                   festivals={allFestivals || []}
@@ -334,6 +343,7 @@ export default function Home() {
                 />
                 <TempleEvents events={upcomingEvents || []} isLoading={loadingEvents} />
               </div>
+              </>
             )}
           </TabsContent>
 

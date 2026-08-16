@@ -16,6 +16,7 @@ import { getAllFestivals } from "./data";
 import { getUpcomingEclipses, getPastEclipses, type EclipseEvent } from "./eclipse";
 import { getPanchangForDate, getTodayInTimezone, getDayPeriods, type DayPeriod } from "./panchang";
 import { getMuhurtam } from "./muhurtam";
+import { buildIcs } from "./ics";
 import { VRATHAMS, vrathamBySlug } from "../client/src/lib/vrathams";
 import { festivalContent, festivalImage } from "../client/src/lib/festival-content";
 
@@ -703,6 +704,52 @@ ${weekRows}
   };
 }
 
+function skyPage(): PageMeta {
+  const next = getUpcomingEclipses(TZ, 1)[0];
+  const qa = [
+    {
+      q: "Why isn't there an eclipse at every new moon and full moon?",
+      a: "Because the Moon's orbit is tilted about 5.1° to Earth's orbital plane (the ecliptic). At most new and full moons the Moon passes above or below the Sun–Earth line. Eclipses can only occur when the line of nodes — where the two orbital planes intersect — points at the Sun, which happens roughly twice a year (eclipse seasons).",
+    },
+    {
+      q: "What is the line of nodes?",
+      a: "The line along which the Moon's tilted orbital plane crosses the ecliptic. Its two ends are the ascending and descending nodes — known in Indian astronomy as Rahu and Ketu. The node line slowly rotates backwards, completing a full circle every 18.6 years, which is why eclipse seasons shift earlier each year.",
+    },
+    {
+      q: "What are Rahu and Ketu?",
+      a: "In Indian astronomy, Rahu is the ascending lunar node and Ketu the descending node — the two points where the Moon's orbit crosses the ecliptic. Eclipses happen only near these points, which is why the ancients described Rahu and Ketu as 'swallowing' the Sun and Moon during grahanam.",
+    },
+    {
+      q: "How often do eclipse seasons occur?",
+      a: "About every 173 days (a little under six months), each lasting around 34 days. Within one season there is at least one solar and usually one lunar eclipse. The interactive 3D model lets you scrub time and watch the seasons line up.",
+    },
+  ];
+  const body = `
+<main style="max-width:760px;margin:0 auto;padding:24px;font-family:Georgia,serif">
+  <h1>Why are eclipses rare? — an interactive 3D Sun–Earth–Moon model</h1>
+  <p>A real-geometry 3D orrery: the Moon's orbit tilted at its true 5.1°, the line of nodes (Rahu &amp; Ketu), and a time scrubber spanning two years of real dates. Watch eclipse seasons come around twice a year — and drag the Moon's tilt to 0° to see an eclipse at every new and full moon. Positions are computed from astronomical data (astronomy-engine); real upcoming eclipses are marked on the timeline.</p>
+  ${next ? `<p>Next real eclipse: ${esc(eclipseName(next))} on ${esc(formatDate(next.dateLocal))}, peak ${esc(next.peakLocal)} IST — details on the <a href="/eclipses">eclipses page</a>.</p>` : ""}
+  ${faqSection(qa)}
+  ${relatedNav()}
+</main>`.trim();
+  return {
+    title: "Why Are Eclipses Rare? Interactive 3D Moon Orbit & Line of Nodes (Rahu–Ketu) | Telugu Panchangam",
+    description:
+      "Interactive 3D model of the Sun, Earth and Moon: the Moon's 5.1° tilted orbit, the line of nodes (Rahu & Ketu), eclipse seasons, and a tilt slider that shows why eclipses don't happen every month.",
+    canonicalPath: "/sky",
+    jsonLd: [
+      breadcrumb([
+        { name: "Home", path: "/" },
+        { name: "Eclipses", path: "/eclipses" },
+        { name: "3D Orrery", path: "/sky" },
+      ]),
+      faqPage(qa),
+    ],
+    bodyHtml: body,
+    maxAge: 3600,
+  };
+}
+
 // Map a request path to its page meta, or null if it isn't an SEO route.
 export function pageForPath(pathname: string): PageMeta | null {
   if (pathname === "/") return homePage();
@@ -716,6 +763,7 @@ export function pageForPath(pathname: string): PageMeta | null {
   if (pathname === "/vrathams") return vrathamsListPage();
   if (pathname === "/eclipses") return eclipsesPage();
   if (pathname === "/rahu-kalam") return rahuKalamPage();
+  if (pathname === "/sky") return skyPage();
 
   let m = pathname.match(/^\/panchangam\/(\d{4}-\d{2}-\d{2})$/);
   if (m) return panchangPage(m[1], false);
@@ -829,6 +877,7 @@ export function buildSitemap(): string {
     { loc: abs("/vrathams"), changefreq: "monthly", priority: "0.8" },
     { loc: abs("/eclipses"), changefreq: "weekly", priority: "0.8" },
     { loc: abs("/rahu-kalam"), changefreq: "daily", priority: "0.8" },
+    { loc: abs("/sky"), changefreq: "monthly", priority: "0.7" },
     ...getAllFestivals().map((f) => ({
       loc: abs(`/festivals/${f.id}`),
       changefreq: "monthly",
@@ -894,7 +943,11 @@ ${festivalLines}
 ## Vratham (puja) guides
 ${vrathamLines}
 
+## Interactive
+- [Why are eclipses rare? — 3D orrery](${abs("/sky")}): the Moon's 5.1° tilted orbit, line of nodes (Rahu & Ketu), eclipse seasons
+
 ## Optional
+- [Festival calendar feed (.ics)](${abs("/calendar.ics")}): subscribe in Google/Apple Calendar
 - [Privacy policy](${abs("/privacy.html")})
 - [Sitemap](${abs("/sitemap.xml")})
 `;
@@ -914,6 +967,13 @@ export function registerSeoRoutes(app: Express, distPath: string): void {
       .send(buildSitemap());
   });
 
+  app.get("/calendar.ics", (_req: Request, res: Response) => {
+    res
+      .type("text/calendar; charset=utf-8")
+      .set("Cache-Control", "public, max-age=3600")
+      .send(buildIcs());
+  });
+
   app.get("/llms.txt", (_req: Request, res: Response) => {
     res
       .type("text/plain; charset=utf-8")
@@ -929,6 +989,7 @@ export function registerSeoRoutes(app: Express, distPath: string): void {
       "/vrathams",
       "/eclipses",
       "/rahu-kalam",
+      "/sky",
       "/panchangam/:date",
       "/festivals/:slug",
       "/vrathams/:slug",

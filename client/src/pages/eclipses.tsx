@@ -437,6 +437,15 @@ export default function EclipsesPage() {
       <section className="space-y-5">
         <SectionHead title={t("గ్రహణ ప్రయోగశాల", "Eclipse Lab")} aside={t("ఇంటరాక్టివ్", "interactive")} />
         <EclipsePlayground eclipses={eclipses} location={location} timezone={timezone} />
+        <Link href="/sky">
+          <span
+            className="inline-flex items-center gap-2 rounded-full border border-[hsl(var(--gold)/.35)] bg-[hsl(var(--gold)/.08)] px-4 py-2 text-sm text-[hsl(var(--gold-deep))] hover:bg-[hsl(var(--gold)/.15)] cursor-pointer"
+            data-testid="link-sky-orrery"
+          >
+            🪐 {t("గ్రహణాలు ఎందుకు అరుదు? — 3D నమూనా చూడండి", "Why are eclipses rare? Explore the 3D model")}
+            <span aria-hidden>→</span>
+          </span>
+        </Link>
       </section>
 
       {/* TIMELINE — upcoming & past */}
