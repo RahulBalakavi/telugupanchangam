@@ -14,7 +14,7 @@ import fs from "fs";
 import path from "path";
 import { getAllFestivals } from "./data";
 import { getUpcomingEclipses, getPastEclipses, type EclipseEvent } from "./eclipse";
-import { getPanchangForDate, getTodayInTimezone } from "./panchang";
+import { getPanchangForDate, getTodayInTimezone, getDayPeriods, type DayPeriod } from "./panchang";
 import { getMuhurtam } from "./muhurtam";
 import { VRATHAMS, vrathamBySlug } from "../client/src/lib/vrathams";
 import { festivalContent, festivalImage } from "../client/src/lib/festival-content";
@@ -93,6 +93,7 @@ function relatedNav(): string {
   <h2>Explore</h2>
   <ul>
     <li><a href="/today">Today's panchangam &amp; muhurtam</a></li>
+    <li><a href="/rahu-kalam">Rahu Kalam today (రాహుకాలం)</a></li>
     <li><a href="/festivals">Telugu festivals &amp; dates</a></li>
     <li><a href="/vrathams">Vratham (puja) guides</a></li>
     <li><a href="/">Telugu Panchangam home</a></li>
@@ -607,6 +608,101 @@ ${past.map(row).join("\n")}
   };
 }
 
+function fmt12(hhmm: string): string {
+  const [h, m] = hhmm.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  return `${h % 12 || 12}:${m.toString().padStart(2, "0")} ${period}`;
+}
+
+function range12(p: DayPeriod): string {
+  return `${fmt12(p.start)} to ${fmt12(p.end)}`;
+}
+
+function rahuKalamPage(): PageMeta {
+  const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const today = getTodayInTimezone(TZ);
+  const week = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date(today.getTime() + i * 86400_000);
+    const dateStr = date.toISOString().slice(0, 10);
+    return {
+      dateStr,
+      weekday: WEEKDAYS[new Date(dateStr + "T12:00:00Z").getUTCDay()],
+      periods: getDayPeriods(date, TZ),
+    };
+  });
+  const t = week[0];
+  const todayLabel = formatDate(t.dateStr);
+
+  const qa = [
+    {
+      q: "What is Rahu Kalam today?",
+      a: `Today (${todayLabel}), Rahu Kalam is from ${range12(t.periods.rahuKalam)} IST. Yamagandam is ${range12(t.periods.yamagandam)} and Gulika Kalam is ${range12(t.periods.gulikaKalam)}. Times are for India (IST); on the interactive page they adjust to your city.`,
+    },
+    {
+      q: "How is Rahu Kalam calculated?",
+      a: "The time from sunrise to sunset is divided into 8 equal parts. Which part is Rahu Kalam depends on the weekday: 8th part on Sunday, 2nd on Monday, 7th on Tuesday, 5th on Wednesday, 6th on Thursday, 4th on Friday and 3rd on Saturday. Because sunrise and sunset shift daily and by city, the exact times change every day.",
+    },
+    {
+      q: "What should be avoided during Rahu Kalam?",
+      a: "Tradition avoids starting anything new during Rahu Kalam — journeys, business openings, house-warming, weddings, signing agreements or major purchases. Routine ongoing work is not affected. Yamagandam and Gulika Kalam are similarly avoided for new beginnings.",
+    },
+    {
+      q: "What is Abhijit Muhurtam and when is it today?",
+      a: t.periods.abhijitMuhurtam
+        ? `Abhijit Muhurtam is the auspicious midday window — the 8th of the day's 15 muhurtas. Today it is from ${range12(t.periods.abhijitMuhurtam)} IST. It is considered good for starting new work when no other muhurtam is available (traditionally not observed on Wednesdays).`
+        : "Abhijit Muhurtam is the auspicious midday window — the 8th of the day's 15 muhurtas. Today is Wednesday, when Abhijit Muhurtam is traditionally not observed.",
+    },
+    {
+      q: "What is Brahma Muhurtam time today?",
+      a: `Brahma Muhurtam today is ${range12(t.periods.brahmaMuhurtam)} IST — the pre-dawn window from 96 to 48 minutes before sunrise, considered ideal for prayer, meditation and study.`,
+    },
+  ];
+
+  const weekRows = week
+    .map(
+      (d) =>
+        `<tr><td>${esc(d.weekday)}, ${esc(formatDate(d.dateStr))}</td><td>${esc(range12(d.periods.rahuKalam))}</td><td>${esc(range12(d.periods.yamagandam))}</td><td>${esc(range12(d.periods.gulikaKalam))}</td></tr>`,
+    )
+    .join("\n");
+
+  const body = `
+<main style="max-width:760px;margin:0 auto;padding:24px;font-family:Georgia,serif">
+  <h1>Rahu Kalam Today — రాహుకాలం | Yamagandam, Gulika Kalam, Abhijit &amp; Brahma Muhurtam Timings</h1>
+  <p>Daily Rahu Kalam (రాహుకాలం), Yamagandam (యమగండం), Gulika Kalam (గుళిక కాలం), Abhijit Muhurtam and Brahma Muhurtam, computed from the actual sunrise and sunset. Times below are for India (IST); the interactive page adjusts them to your city and shows what is happening right now.</p>
+  <h2>Today — ${esc(t.weekday)}, ${esc(todayLabel)}</h2>
+  <ul>
+    <li><strong>Rahu Kalam (రాహుకాలం):</strong> ${esc(range12(t.periods.rahuKalam))} IST — avoid starting new ventures.</li>
+    <li><strong>Yamagandam (యమగండం):</strong> ${esc(range12(t.periods.yamagandam))} IST</li>
+    <li><strong>Gulika Kalam (గుళిక కాలం):</strong> ${esc(range12(t.periods.gulikaKalam))} IST</li>
+    <li><strong>Abhijit Muhurtam (అభిజిత్ ముహూర్తం):</strong> ${t.periods.abhijitMuhurtam ? esc(range12(t.periods.abhijitMuhurtam)) + " IST — auspicious" : "not observed on Wednesdays"}</li>
+    <li><strong>Brahma Muhurtam (బ్రహ్మ ముహూర్తం):</strong> ${esc(range12(t.periods.brahmaMuhurtam))} IST — ideal for prayer and study.</li>
+  </ul>
+  <h2>This week's Rahu Kalam, Yamagandam &amp; Gulika Kalam (IST)</h2>
+  <table border="1" cellpadding="6" cellspacing="0">
+    <tr><th>Day</th><th>Rahu Kalam</th><th>Yamagandam</th><th>Gulika Kalam</th></tr>
+${weekRows}
+  </table>
+  ${faqSection(qa)}
+  ${relatedNav()}
+</main>`.trim();
+
+  return {
+    title: `Rahu Kalam Today ${todayLabel} — రాహుకాలం, Yamagandam & Gulika Timings | Telugu Panchangam`,
+    description: `Rahu Kalam today: ${range12(t.periods.rahuKalam)} IST. Yamagandam ${range12(t.periods.yamagandam)}, Gulika Kalam ${range12(t.periods.gulikaKalam)}, Brahma Muhurtam ${range12(t.periods.brahmaMuhurtam)}. Daily & weekly timings, adjusted to your city.`,
+    canonicalPath: "/rahu-kalam",
+    jsonLd: [
+      breadcrumb([
+        { name: "Home", path: "/" },
+        { name: "Rahu Kalam", path: "/rahu-kalam" },
+      ]),
+      faqPage(qa),
+    ],
+    bodyHtml: body,
+    // Times change at midnight IST; keep the cache short so "today" stays true.
+    maxAge: 1800,
+  };
+}
+
 // Map a request path to its page meta, or null if it isn't an SEO route.
 export function pageForPath(pathname: string): PageMeta | null {
   if (pathname === "/") return homePage();
@@ -619,6 +715,7 @@ export function pageForPath(pathname: string): PageMeta | null {
   if (pathname === "/festivals") return festivalsListPage();
   if (pathname === "/vrathams") return vrathamsListPage();
   if (pathname === "/eclipses") return eclipsesPage();
+  if (pathname === "/rahu-kalam") return rahuKalamPage();
 
   let m = pathname.match(/^\/panchangam\/(\d{4}-\d{2}-\d{2})$/);
   if (m) return panchangPage(m[1], false);
@@ -731,6 +828,7 @@ export function buildSitemap(): string {
     { loc: abs("/festivals"), changefreq: "weekly", priority: "0.8" },
     { loc: abs("/vrathams"), changefreq: "monthly", priority: "0.8" },
     { loc: abs("/eclipses"), changefreq: "weekly", priority: "0.8" },
+    { loc: abs("/rahu-kalam"), changefreq: "daily", priority: "0.8" },
     ...getAllFestivals().map((f) => ({
       loc: abs(`/festivals/${f.id}`),
       changefreq: "monthly",
@@ -772,6 +870,7 @@ export function registerSeoRoutes(app: Express, distPath: string): void {
       "/festivals",
       "/vrathams",
       "/eclipses",
+      "/rahu-kalam",
       "/panchangam/:date",
       "/festivals/:slug",
       "/vrathams/:slug",

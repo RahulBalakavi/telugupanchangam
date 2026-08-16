@@ -11,6 +11,7 @@ import { LanguageContext, useLanguageProvider } from "@/hooks/use-language";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import EclipsesPage from "@/pages/eclipses";
+import RahuKalamPage from "@/pages/rahu-kalam";
 
 function Router() {
   const [location] = useLocation();
@@ -25,6 +26,7 @@ function Router() {
       <Route path="/vrathams" component={Home} />
       <Route path="/vrathams/:slug" component={Home} />
       <Route path="/eclipses" component={EclipsesPage} />
+      <Route path="/rahu-kalam" component={RahuKalamPage} />
       <Route component={NotFound} />
     </Switch>
   );

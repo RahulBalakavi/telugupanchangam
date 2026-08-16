@@ -133,6 +133,16 @@ export interface PanchangData {
   isSpecialDay: boolean;
   specialDayInfo?: string;
   specialDayInfoTelugu?: string;
+  /** Daily auspicious/inauspicious windows ("HH:MM" 24h local). Optional so
+   *  cached/mocked payloads without it stay valid. */
+  periods?: {
+    rahuKalam: { start: string; end: string };
+    yamagandam: { start: string; end: string };
+    gulikaKalam: { start: string; end: string };
+    /** null on Wednesdays, when Abhijit is traditionally not observed. */
+    abhijitMuhurtam: { start: string; end: string } | null;
+    brahmaMuhurtam: { start: string; end: string };
+  };
 }
 
 export interface Festival {

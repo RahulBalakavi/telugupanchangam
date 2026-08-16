@@ -537,6 +537,82 @@ export function getTimezoneCoordinates(timezone: string): { lat: number; lon: nu
   return timezoneData[timezone] || timezoneData["Asia/Kolkata"];
 }
 
+// ---------------------------------------------------------------------------
+// Daily auspicious/inauspicious periods, all derived from sunrise & sunset.
+//
+// The classical rule divides the daytime (sunrise → sunset) into 8 equal
+// parts; which part is Rahu Kalam / Yamagandam / Gulika Kalam depends only on
+// the weekday. Abhijit Muhurtam is the 8th of 15 muhurtas (the midday
+// fifteenth of daytime), traditionally not observed on Wednesdays. Brahma
+// Muhurtam is the penultimate muhurta of the night: 96 to 48 minutes before
+// sunrise.
+
+export interface DayPeriod {
+  start: string; // "HH:MM" 24h, local to the requested timezone
+  end: string;
+}
+
+export interface DayPeriods {
+  rahuKalam: DayPeriod;
+  yamagandam: DayPeriod;
+  gulikaKalam: DayPeriod;
+  abhijitMuhurtam: DayPeriod | null; // null on Wednesdays
+  brahmaMuhurtam: DayPeriod;
+}
+
+// 1-indexed segment (of 8) per weekday, Sunday first — classical tables.
+const RAHU_SEGMENT = [8, 2, 7, 5, 6, 4, 3];
+const YAMA_SEGMENT = [5, 4, 3, 2, 1, 7, 6];
+const GULIKA_SEGMENT = [7, 6, 5, 4, 3, 2, 1];
+
+function hhmmToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function minutesToHHMM(total: number): string {
+  const t = ((Math.round(total) % 1440) + 1440) % 1440;
+  const h = Math.floor(t / 60);
+  const m = t % 60;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+}
+
+export function getDayPeriods(date: Date, timezone: string = "Asia/Kolkata"): DayPeriods {
+  const { lat, lon, offset } = getTimezoneCoordinates(timezone);
+  const sunrise = hhmmToMinutes(getSunrise(date, lat, lon, offset));
+  const sunset = hhmmToMinutes(getSunset(date, lat, lon, offset));
+  const dayLen = sunset - sunrise;
+
+  // Weekday of the calendar date in the requested timezone.
+  const weekday = new Date(formatDateInTimezone(date, timezone) + "T12:00:00Z").getUTCDay();
+
+  const eighth = dayLen / 8;
+  const segment = (n: number): DayPeriod => ({
+    start: minutesToHHMM(sunrise + (n - 1) * eighth),
+    end: minutesToHHMM(sunrise + n * eighth),
+  });
+
+  const muhurta = dayLen / 15;
+  const abhijitMuhurtam: DayPeriod | null =
+    weekday === 3
+      ? null
+      : {
+          start: minutesToHHMM(sunrise + 7 * muhurta),
+          end: minutesToHHMM(sunrise + 8 * muhurta),
+        };
+
+  return {
+    rahuKalam: segment(RAHU_SEGMENT[weekday]),
+    yamagandam: segment(YAMA_SEGMENT[weekday]),
+    gulikaKalam: segment(GULIKA_SEGMENT[weekday]),
+    abhijitMuhurtam,
+    brahmaMuhurtam: {
+      start: minutesToHHMM(sunrise - 96),
+      end: minutesToHHMM(sunrise - 48),
+    },
+  };
+}
+
 export function getSpecialDayInfo(tithi: { name: string; number: number; paksha: string }): { isSpecial: boolean; info?: string; infoTelugu?: string } {
   const tithiName = tithi.name.toLowerCase();
   const paksha = tithi.paksha.toLowerCase();
@@ -638,6 +714,7 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
     isSpecialDay: specialDay.isSpecial,
     specialDayInfo: specialDay.info,
     specialDayInfoTelugu: specialDay.infoTelugu,
+    periods: getDayPeriods(date, timezone),
   };
 }
 

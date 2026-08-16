@@ -6,6 +6,7 @@ import {
   getPanchangForDate,
   getCalendarDays,
   getTodayInTimezone,
+  getDayPeriods,
 } from "./panchang";
 import {
   getUpcomingFestivals,
@@ -45,6 +46,30 @@ export async function registerRoutes(
     const today = getTodayInTimezone(timezone);
     const panchang = getPanchangForDate(today, timezone);
     res.json(panchang);
+  });
+
+  // Rahu Kalam & co. for today plus the next 6 days.
+  app.get("/api/periods/week", (req, res) => {
+    try {
+      const timezone = (req.query.timezone as string) || "Asia/Kolkata";
+      if (!isValidTimezone(timezone)) {
+        return res.status(400).json({ error: "Invalid timezone" });
+      }
+      const start = getTodayInTimezone(timezone);
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date(start.getTime() + i * 86400_000);
+        const dateStr = date.toISOString().slice(0, 10);
+        return {
+          date: dateStr,
+          weekday: new Date(dateStr + "T12:00:00Z").getUTCDay(),
+          periods: getDayPeriods(date, timezone),
+        };
+      });
+      res.setHeader("Cache-Control", "public, max-age=600");
+      res.json({ timezone, days });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to compute periods" });
+    }
   });
 
   app.get("/api/eclipses", (req, res) => {
