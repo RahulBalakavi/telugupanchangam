@@ -87,19 +87,22 @@ function eclipticToVec(lonDeg: number, latDeg: number, r: number): THREE.Vector3
   );
 }
 
+// Text is drawn white so the sprite material's `color` can tint it at runtime
+// (used to highlight affected nakshatras during an eclipse).
 function textSprite(text: string, color = "#e8dcc0", size = 42): THREE.Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = 512;
   canvas.height = 128;
   const ctx = canvas.getContext("2d")!;
   ctx.font = `600 ${size}px Georgia, serif`;
-  ctx.fillStyle = color;
+  ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(text, 256, 64);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
+  mat.color.set(color);
   const sprite = new THREE.Sprite(mat);
   sprite.scale.set(6, 1.5, 1);
   return sprite;
@@ -117,6 +120,8 @@ interface HudState {
   nakshatra: string;
   eclipse: "solar" | "lunar" | null;
   season: boolean;
+  /** janma · anujanma · trijanma names, present while an eclipse is active */
+  affected: string[] | null;
 }
 
 export default function SkyPage() {
@@ -233,27 +238,40 @@ export default function SkyPage() {
       ),
     );
 
-    // Nakshatra ring: 27 ticks just outside Earth's orbit.
+    // Nakshatra ring: 27 sidereal segments just outside Earth's orbit —
+    // boundaries and labels shifted by the ayanamsa so the ring matches the
+    // panchangam's sidereal reckoning.
+    const NAK_BASE = 0x8a6b3a;
+    const ay0 = ayanamsa(Date.now());
+    const segDeg = 360 / 27;
+    const nakLabels: THREE.Sprite[] = [];
+    const nakLabelPos: THREE.Vector3[] = [];
     {
-      const tickMat = new THREE.LineBasicMaterial({ color: 0x8a6b3a, transparent: true, opacity: 0.7 });
+      const tickMat = new THREE.LineBasicMaterial({ color: NAK_BASE, transparent: true, opacity: 0.6 });
+      const names = language === "telugu" ? nakshatraNamesTelugu : nakshatraNames;
       for (let i = 0; i < 27; i++) {
-        const lon = (i * 360) / 27;
-        const a = eclipticToVec(lon, 0, R_EARTH_ORBIT + 2.2);
-        const b = eclipticToVec(lon, 0, R_EARTH_ORBIT + 3.0);
+        const boundary = i * segDeg + ay0;
+        const a = eclipticToVec(boundary, 0, R_EARTH_ORBIT + 2.2);
+        const b = eclipticToVec(boundary, 0, R_EARTH_ORBIT + 3.0);
         scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), tickMat));
-      }
-      const lbls: Array<[string, number]> = [
-        ["Ashwini", 0 * (360 / 27)],
-        ["Pushya", 7 * (360 / 27)],
-        ["Chitra", 13 * (360 / 27)],
-        ["Shravana", 21 * (360 / 27)],
-      ];
-      for (const [name, lon] of lbls) {
-        const s = textSprite(name, "#8a6b3a", 36);
-        s.position.copy(eclipticToVec(lon + ayanamsa(Date.now()), 0, R_EARTH_ORBIT + 4.2));
+
+        const center = boundary + segDeg / 2;
+        const s = textSprite(names[i], "#8a6b3a", 44);
+        s.scale.set(3.6, 0.9, 1);
+        const pos = eclipticToVec(center, 0, R_EARTH_ORBIT + 4.4);
+        s.position.copy(pos);
         scene.add(s);
+        nakLabels.push(s);
+        nakLabelPos.push(pos);
       }
     }
+
+    // Connector from the Moon to the nakshatra the eclipse occurs in.
+    const connectorMat = new THREE.LineBasicMaterial({ color: 0xff6655, transparent: true, opacity: 0.9 });
+    const connectorGeom = new THREE.BufferGeometry();
+    const connector = new THREE.Line(connectorGeom, connectorMat);
+    connector.visible = false;
+    scene.add(connector);
 
     // Earth + Moon + Moon orbit plane + node line
     const earth = new THREE.Mesh(
@@ -399,6 +417,42 @@ export default function SkyPage() {
           const ay = ayanamsa(tm);
           const sidereal = (((s.moonLon - ay) % 360) + 360) % 360;
           const nIdx = Math.floor(sidereal / (360 / 27)) % 27;
+
+          // Nakshatra ring highlighting. Base state: dim gold, with the
+          // Moon's current star gently brightened so its day-by-day march
+          // around the ring is visible. During an eclipse: the star the
+          // eclipse occurs in (janma) burns red, and its trine stars —
+          // the 10th (anujanma) and 19th (trijanma) counted from it — go
+          // bright gold: the traditional "affected" set.
+          const eclipseNow = solarNow || lunarNow;
+          const janma = nIdx;
+          const anujanma = (nIdx + 9) % 27;
+          const trijanma = (nIdx + 18) % 27;
+          for (let i = 0; i < 27; i++) {
+            const sprite = nakLabels[i];
+            const mat = sprite.material as THREE.SpriteMaterial;
+            if (eclipseNow && i === janma) {
+              mat.color.set("#ff6655");
+              mat.opacity = 1;
+              sprite.scale.set(5.2, 1.3, 1);
+            } else if (eclipseNow && (i === anujanma || i === trijanma)) {
+              mat.color.set("#ffcf70");
+              mat.opacity = 1;
+              sprite.scale.set(4.6, 1.15, 1);
+            } else if (!eclipseNow && i === nIdx) {
+              mat.color.set("#e8dcc0");
+              mat.opacity = 1;
+              sprite.scale.set(4.2, 1.05, 1);
+            } else {
+              mat.color.set("#8a6b3a");
+              mat.opacity = 0.75;
+              sprite.scale.set(3.6, 0.9, 1);
+            }
+          }
+          connector.visible = eclipseNow;
+          if (eclipseNow) {
+            connectorGeom.setFromPoints([moon.position.clone(), nakLabelPos[janma].clone()]);
+          }
           const phaseName =
             s.phase < 12 || s.phase > 348
               ? t("అమావాస్య (New Moon)", "New Moon")
@@ -407,6 +461,7 @@ export default function SkyPage() {
                 : s.phase < 180
                   ? t("శుక్ల పక్షం", "Waxing")
                   : t("కృష్ణ పక్షం", "Waning");
+          const names = language === "telugu" ? nakshatraNamesTelugu : nakshatraNames;
           setHud({
             dateLabel: d.toLocaleDateString(language === "telugu" ? "te-IN" : "en-US", {
               year: "numeric",
@@ -414,10 +469,10 @@ export default function SkyPage() {
               day: "numeric",
             }),
             phaseName,
-            nakshatra:
-              language === "telugu" ? nakshatraNamesTelugu[nIdx] : nakshatraNames[nIdx],
+            nakshatra: names[nIdx],
             eclipse: solarNow ? "solar" : lunarNow ? "lunar" : null,
             season,
+            affected: eclipseNow ? [names[janma], names[anujanma], names[trijanma]] : null,
           });
           setTimeMs(tm);
         }
@@ -482,11 +537,23 @@ export default function SkyPage() {
               {hud.phaseName} · {t("నక్షత్రం", "Moon in")} {hud.nakshatra}
             </p>
             {hud.eclipse ? (
-              <p className="inline-block rounded bg-red-500/90 px-2 py-0.5 font-semibold text-white">
-                {hud.eclipse === "solar"
-                  ? t("సూర్యగ్రహణం!", "SOLAR ECLIPSE!")
-                  : t("చంద్రగ్రహణం!", "LUNAR ECLIPSE!")}
-              </p>
+              <div className="space-y-1">
+                <p className="inline-block rounded bg-red-500/90 px-2 py-0.5 font-semibold text-white">
+                  {hud.eclipse === "solar"
+                    ? t("సూర్యగ్రహణం!", "SOLAR ECLIPSE!")
+                    : t("చంద్రగ్రహణం!", "LUNAR ECLIPSE!")}
+                </p>
+                {hud.affected && (
+                  <p className="max-w-[260px] text-xs leading-snug text-amber-200/90" data-testid="text-affected-stars">
+                    {t("ప్రభావిత నక్షత్రాలు", "Affected stars")}:{" "}
+                    <span className="text-red-300 font-medium">{hud.affected[0]}</span>
+                    {" · "}{hud.affected[1]}{" · "}{hud.affected[2]}
+                    <span className="block text-white/45">
+                      {t("(జన్మ · అనుజన్మ · త్రిజన్మ)", "(janma · anujanma · trijanma)")}
+                    </span>
+                  </p>
+                )}
+              </div>
             ) : hud.season ? (
               <p className="inline-block rounded bg-emerald-500/20 px-2 py-0.5 text-emerald-300">
                 {t("గ్రహణ ఋతువు — నోడ్స్ సూర్యుని వైపు", "Eclipse season — nodes point at the Sun")}
@@ -569,8 +636,8 @@ export default function SkyPage() {
 
         <p className="text-xs text-white/45 leading-relaxed max-w-3xl">
           {t(
-            "చంద్రుని కక్ష్య 5.1° వంగి ఉంది. నోడ్ రేఖ (ఆకుపచ్చ) సూర్యుని వైపు చూపినప్పుడే — సంవత్సరానికి రెండుసార్లు — గ్రహణాలు వస్తాయి. వంపును 0°కి జరిపి చూడండి: ప్రతి అమావాస్య, పూర్ణిమకూ గ్రహణమే!",
-            "The Moon's orbit is tilted 5.1°. Eclipses happen only when the green line of nodes points at the Sun — about twice a year. Drag the tilt to 0° and watch an eclipse fire at every new and full moon.",
+            "చంద్రుని కక్ష్య 5.1° వంగి ఉంది. నోడ్ రేఖ (ఆకుపచ్చ) సూర్యుని వైపు చూపినప్పుడే — సంవత్సరానికి రెండుసార్లు — గ్రహణాలు వస్తాయి. వంపును 0°కి జరిపి చూడండి: ప్రతి అమావాస్య, పూర్ణిమకూ గ్రహణమే! గ్రహణ సమయంలో చంద్రుడు ఉన్న నక్షత్రమే (ఎరుపు) ఎక్కువగా ప్రభావితం — దాని నుంచి 10వ, 19వ నక్షత్రాలు (బంగారు రంగు) కూడా.",
+            "The Moon's orbit is tilted 5.1°. Eclipses happen only when the green line of nodes points at the Sun — about twice a year. Drag the tilt to 0° and watch an eclipse fire at every new and full moon. The star the Moon occupies at that moment (red) is the eclipse's janma nakshatra — most affected — along with the 10th and 19th stars counted from it (gold).",
           )}
         </p>
       </div>
