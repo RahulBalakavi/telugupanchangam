@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export * from "./models/notifications";
 export * from "./models/analytics";
+export * from "./models/deck-readers";
 
 export const tithiNames = [
   "Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami",

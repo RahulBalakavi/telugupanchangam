@@ -162,3 +162,11 @@ Schema changes go through `npm run db:push` (drizzle-kit) against
 The domain `mytelugupanchangam.space` is registered at Namecheap; its A record
 points at the Render service. `server/seo.ts` hardcodes that host as the
 canonical origin, so keep them in sync.
+
+## Durga Saptashati reader count
+
+The static learning deck uses `GET /api/decks/durga-saptashati/readers` for the public total and `POST` with `{ "readerId": "<browser UUID>" }` when a reader chooses Start. The service stores only a namespaced SHA-256 digest and first-start time in `durga_deck_readers`; it does not count repeat starts from the same browser again. This is an approximate browser count beginning with this release, not historical traffic or completed readings. Calendar analytics remain separate.
+
+Startup creates this dedicated table if absent using the existing `DATABASE_URL`; it does not change existing tables. The table is also declared in the shared Drizzle schema. If setup or counting fails, the counter reports unavailability and the calendar remains usable. Cross-origin browser calls are allowed only from the published deck and Panchangam domains. No secret is embedded in the deck.
+
+Run `DATABASE_URL=postgresql://<local-user>@127.0.0.1:<port>/durga_counter_test node --import tsx --test server/reader-counter.test.ts` against a disposable database named `durga_counter_test`. The HTTP flow checks duplicate/concurrent starts, persistent totals, validation and origin handling using real PostgreSQL.

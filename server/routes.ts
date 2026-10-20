@@ -24,6 +24,7 @@ import {
 } from "./chat";
 import { getUpcomingEclipses, getPastEclipses, getLocalEclipseVisibility, getEclipsesForMonth, isValidTimezone } from "./eclipse";
 import { storage } from "./storage";
+import { registerReaderCounter } from "./reader-counter";
 import { getVapidPublicKey, startNotificationScheduler, sendNotificationToDevice } from "./push-service";
 
 // The app has no accounts; notification state is keyed to an opaque device id
@@ -40,6 +41,8 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  await registerReaderCounter(app);
+
   // Public API routes
   app.get("/api/panchang/today", (req, res) => {
     const timezone = (req.query.timezone as string) || "Asia/Kolkata";
