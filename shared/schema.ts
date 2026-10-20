@@ -217,3 +217,5 @@ export interface CalendarDay {
   eclipses?: CalendarDayEclipse[];
 }
 
+
+export * from "./models/prayer-views";

@@ -170,3 +170,11 @@ The static learning deck uses `GET /api/decks/durga-saptashati/readers` for the 
 Startup creates this dedicated table if absent using the existing `DATABASE_URL`; it does not change existing tables. The table is also declared in the shared Drizzle schema. If setup or counting fails, the counter reports unavailability and the calendar remains usable. Cross-origin browser calls are allowed only from the published deck and Panchangam domains. No secret is embedded in the deck.
 
 Run `DATABASE_URL=postgresql://<local-user>@127.0.0.1:<port>/durga_counter_test node --import tsx --test server/reader-counter.test.ts` against a disposable database named `durga_counter_test`. The HTTP flow checks duplicate/concurrent starts, persistent totals, validation and origin handling using real PostgreSQL.
+
+### Public prayer-page views
+
+Each Vrathams/Pujas detail page shows a bilingual “Viewed X times” badge after a successful count. POST `/api/vrathams/:slug/views` records an anonymous UUID event for that page opening and returns its total; GET reads the total without incrementing it. A new opening/reload counts again, while retries with the same event UUID count once. Selecting a prayer inside the app counts too. No browser/person identifier is saved by this counter, and views are not represented as unique people. Counts start when this feature goes live; older analytics are not backfilled. Visits directly to the separate GitHub Pages readers are not included.
+
+The additive `prayer_page_views` table retains counts across service restarts. When storage is unavailable, the badge is hidden and reading/listening continues. This feature is staged pending resolution of the production database error also affecting the existing Durga reader counter; it has not yet been published.
+
+Local integration check (requires the disposable `durga_counter_test` database): `node --import tsx --test server/prayer-views.test.ts` with `DATABASE_URL` pointing to that local database. The test clears only that counter table in the guarded test database.

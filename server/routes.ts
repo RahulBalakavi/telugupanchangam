@@ -25,6 +25,7 @@ import {
 import { getUpcomingEclipses, getPastEclipses, getLocalEclipseVisibility, getEclipsesForMonth, isValidTimezone } from "./eclipse";
 import { storage } from "./storage";
 import { registerReaderCounter } from "./reader-counter";
+import { registerPrayerViews } from "./prayer-views";
 import { getVapidPublicKey, startNotificationScheduler, sendNotificationToDevice } from "./push-service";
 
 // The app has no accounts; notification state is keyed to an opaque device id
@@ -42,6 +43,7 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   await registerReaderCounter(app);
+  await registerPrayerViews(app);
 
   // Public API routes
   app.get("/api/panchang/today", (req, res) => {
