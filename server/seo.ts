@@ -415,16 +415,16 @@ function vrathamsListPage(): PageMeta {
   ).join("\n");
   const body = `
 <main style="max-width:760px;margin:0 auto;padding:24px;font-family:Georgia,serif">
-  <h1>Vratham (Puja) Guides</h1>
-  <p>Step-by-step guides to perform key vrathams at home, with the puja procedure and samagri (shopping list).</p>
+  <h1>Vrathams, Pujas &amp; Recitation</h1>
+  <p>Home puja guides, preparation lists, and shlokas with simple meanings to read and listen to.</p>
   <ul>${items}</ul>
   ${relatedNav()}
 </main>`.trim();
 
   return {
-    title: "Vratham Puja Guides — How to Perform | Telugu Panchangam",
+    title: "Vrathams, Pujas & Recitation | Telugu Panchangam",
     description:
-      "How to perform key vrathams at home with the puja procedure and samagri (shopping list): Varalakshmi, Vinayaka, Satyanarayana and Venkateswara vratam.",
+      "Explore home puja guides and Durga Saptashati recitation, with Sanskrit shlokas and simple Telugu and English meanings.",
     canonicalPath: "/vrathams",
     jsonLd: [
       {
@@ -451,6 +451,37 @@ function vrathamsListPage(): PageMeta {
 function vrathamPage(slug: string): PageMeta | null {
   const v = vrathamBySlug(slug);
   if (!v) return null;
+  if (v.isRecitation) {
+    return {
+      title: `${v.nameEn} — Read & Listen | Telugu Panchangam`,
+      description: v.aboutEn[0],
+      canonicalPath: `/vrathams/${v.slug}`,
+      jsonLd: [
+        {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: v.nameEn,
+          description: v.aboutEn[0],
+          url: abs(`/vrathams/${v.slug}`),
+        },
+        breadcrumb([
+          { name: "Home", path: "/" },
+          { name: "Vrathams, Pujas & Recitation", path: "/vrathams" },
+          { name: v.nameEn, path: `/vrathams/${v.slug}` },
+        ]),
+      ],
+      bodyHtml: `<main style="max-width:760px;margin:0 auto;padding:24px;font-family:Georgia,serif">
+        <nav aria-label="Breadcrumb"><a href="/">Home</a> › <a href="/vrathams">Vrathams, Pujas &amp; Recitation</a> › ${esc(v.nameEn)}</nav>
+        <h1>${esc(v.nameEn)} — ${esc(v.nameTe)}</h1>
+        ${paragraphs(v.aboutEn)}
+        ${paragraphs(v.aboutTe)}
+        <p>${esc(v.whenEn)}</p>
+        <p><a href="${esc(v.deckUrl)}">Read and listen to ${esc(v.nameEn)} →</a></p>
+        ${relatedNav()}
+      </main>`,
+      maxAge: 3600,
+    };
+  }
   const supplies = v.samagri.flatMap((g) => g.items.map((it) => it.en));
   const supplyList = supplies.map((s) => `<li>${esc(s)}</li>`).join("\n");
 

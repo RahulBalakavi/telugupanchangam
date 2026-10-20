@@ -13,11 +13,11 @@ export function VrathamsList({ onSelect }: VrathamsListProps) {
   return (
     <div className="space-y-5" data-testid="vrathams-list">
       <div className="text-center max-w-2xl mx-auto">
-        <h2 className="font-telugu text-2xl md:text-3xl font-semibold">{t("వ్రతాలు", "Vrathams")}</h2>
+        <h2 className="font-telugu text-2xl md:text-3xl font-semibold">{t("వ్రతాలు, పూజలు & పారాయణం", "Vrathams, Pujas & Recitation")}</h2>
         <p className="text-muted-foreground mt-2">
           {t(
-            "ఇంట్లో చేసుకునే పూజలు — ఎప్పుడు చేయాలి, కావలసిన సామగ్రి, మరియు అడుగడుగునా గైడెడ్ పూజ.",
-            "Home pujas — when to perform them, what to buy, and a step-by-step guided puja to play.",
+            "ఇంట్లో చేసుకునే పూజలు, కావలసిన సామగ్రి, శ్లోకాలు మరియు సులభమైన అర్థాలు — చదవండి, వినండి.",
+            "Home puja guides, preparation lists, and shlokas with simple meanings to read and listen to.",
           )}
         </p>
       </div>
