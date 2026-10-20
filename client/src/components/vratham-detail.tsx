@@ -23,7 +23,7 @@ export function VrathamDetail({ vratham: v, onBack }: VrathamDetailProps) {
     <div className="space-y-6" data-testid={`vratham-detail-${v.slug}`}>
       <Button variant="ghost" size="sm" className="gap-2" onClick={onBack} data-testid="button-vratham-back">
         <ArrowLeft className="h-4 w-4" />
-        {t("వ్రతాలు", "All Vrathams")}
+        {t("వ్రతాలు, పూజలు & పారాయణం", "All Vrathams, Pujas & Recitation")}
       </Button>
 
       {/* Hero */}
@@ -45,14 +45,14 @@ export function VrathamDetail({ vratham: v, onBack }: VrathamDetailProps) {
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className={`grid grid-cols-1 gap-6 ${v.samagri.length ? "lg:grid-cols-3" : ""}`}>
+        <div className={v.samagri.length ? "lg:col-span-2 space-y-6" : "space-y-6"}>
           {/* When to perform */}
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="cel-panel-title flex items-center gap-2">
                 <CalendarClock className="h-4 w-4 text-primary" />
-                {t("ఎప్పుడు ఆచరించాలి", "When to perform")}
+                {v.isRecitation ? t("ఎప్పుడు చదవాలి", "When to read") : t("ఎప్పుడు ఆచరించాలి", "When to perform")}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -88,29 +88,31 @@ export function VrathamDetail({ vratham: v, onBack }: VrathamDetailProps) {
         </div>
 
         {/* Samagri / shopping list */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="cel-panel-title flex items-center gap-2">
-              <ShoppingBag className="h-4 w-4 text-primary" />
-              {t("కావలసిన సామగ్రి", "Items to buy")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {v.samagri.map((group, gi) => (
-              <div key={gi}>
-                <p className="cel-eyebrow mb-2.5">{language === "telugu" ? group.titleTe : group.titleEn}</p>
-                <ul className="space-y-2">
-                  {group.items.map((item, ii) => (
-                    <li key={ii} className="flex items-start gap-2.5 text-sm">
-                      <Check className="h-4 w-4 mt-0.5 text-primary flex-none" />
-                      <span>{language === "telugu" ? item.te : item.en}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+        {v.samagri.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="cel-panel-title flex items-center gap-2">
+                <ShoppingBag className="h-4 w-4 text-primary" />
+                {t("కావలసిన సామగ్రి", "Items to buy")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              {v.samagri.map((group, gi) => (
+                <div key={gi}>
+                  <p className="cel-eyebrow mb-2.5">{language === "telugu" ? group.titleTe : group.titleEn}</p>
+                  <ul className="space-y-2">
+                    {group.items.map((item, ii) => (
+                      <li key={ii} className="flex items-start gap-2.5 text-sm">
+                        <Check className="h-4 w-4 mt-0.5 text-primary flex-none" />
+                        <span>{language === "telugu" ? item.te : item.en}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Guided puja deck */}
@@ -118,7 +120,7 @@ export function VrathamDetail({ vratham: v, onBack }: VrathamDetailProps) {
         <CardHeader className="flex flex-row items-center justify-between gap-3 flex-wrap pb-3">
           <CardTitle className="cel-panel-title flex items-center gap-2">
             <Play className="h-4 w-4 text-primary" />
-            {t("గైడెడ్ పూజ", "Guided Puja")}
+            {v.isRecitation ? t("చదవండి & వినండి", "Read & listen") : t("గైడెడ్ పూజ", "Guided Puja")}
           </CardTitle>
           <Button variant="outline" size="sm" className="gap-2" asChild>
             <a href={v.deckUrl} target="_blank" rel="noopener noreferrer" data-testid="link-deck-fullscreen">
@@ -132,7 +134,7 @@ export function VrathamDetail({ vratham: v, onBack }: VrathamDetailProps) {
             <div className="rounded-xl overflow-hidden border bg-background" style={{ height: "78vh" }}>
               <iframe
                 src={v.deckUrl}
-                title={`${v.nameEn} — guided puja`}
+                title={`${v.nameEn} — ${v.isRecitation ? "read and listen" : "guided puja"}`}
                 className="w-full h-full"
                 allowFullScreen
                 allow="autoplay; fullscreen; encrypted-media"
@@ -149,10 +151,13 @@ export function VrathamDetail({ vratham: v, onBack }: VrathamDetailProps) {
                 <Play className="h-7 w-7 ml-1" />
               </span>
               <p className="font-display tracking-[0.16em] uppercase text-sm text-[hsl(var(--gold-deep))]">
-                {t("గైడెడ్ పూజ ప్రారంభించండి", "Start the guided puja")}
+                {v.isRecitation ? t("శ్లోకాలు వినడం ప్రారంభించండి", "Start listening") : t("గైడెడ్ పూజ ప్రారంభించండి", "Start the guided puja")}
               </p>
               <p className="text-sm text-muted-foreground mt-2">
-                {t(
+                {v.isRecitation ? t(
+                  "సంస్కృత శ్లోకాలు, సులభమైన తెలుగు మరియు ఇంగ్లీషు అర్థాలు",
+                  "Sanskrit shlokas with simple Telugu and English meanings",
+                ) : t(
                   "మంత్రాలు, నైవేద్యం మరియు కథతో అడుగడుగునా మార్గదర్శనం",
                   "Step-by-step audio guidance with mantras, offerings & katha",
                 )}

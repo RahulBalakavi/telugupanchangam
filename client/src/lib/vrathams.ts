@@ -21,6 +21,7 @@ export interface Vratham {
   emoji: string;
   /** Live guided-puja deck (GitHub Pages) embedded on the vratham page. */
   deckUrl: string;
+  isRecitation?: boolean;
   whenEn: string;
   whenTe: string;
   aboutEn: string[];
@@ -49,6 +50,27 @@ const COMMON_SAMAGRI: SamagriGroup = {
 };
 
 export const VRATHAMS: Vratham[] = [
+  {
+    slug: "durga-saptashati",
+    nameEn: "Durga Saptashati",
+    nameTe: "దుర్గా సప్తశతి",
+    deityEn: "Goddess Durga",
+    deityTe: "దుర్గాదేవి",
+    emoji: "🌺",
+    deckUrl: "https://rahulbalakavi.github.io/durga-saptashloki/",
+    isRecitation: true,
+    whenEn: "Read or listen at your own pace, one shloka at a time.",
+    whenTe: "మీకు వీలైన సమయంలో ఒక్కో శ్లోకాన్ని చదవండి, వినండి, అర్థం తెలుసుకోండి.",
+    aboutEn: [
+      "Explore all 13 chapters and the 700 traditionally numbered verses of the Durga Saptashati, with Sanskrit text and simple English and Telugu meanings.",
+      "Listen to each shloka followed by its meaning in Telugu. Pause whenever you like, move backward or forward, or select a line to listen from there.",
+    ],
+    aboutTe: [
+      "దుర్గా సప్తశతిలోని 13 అధ్యాయాలు, సంప్రదాయ లెక్క ప్రకారం 700 శ్లోకాలు ఇక్కడ ఉన్నాయి. సంస్కృత శ్లోకాలతో పాటు సులభమైన తెలుగు, ఇంగ్లీషు అర్థాలు చదవవచ్చు.",
+      "ప్రతి శ్లోకం తర్వాత దాని భావాన్ని తెలుగులో వినవచ్చు. ఎప్పుడైనా ఆపవచ్చు, ముందు లేదా వెనుక శ్లోకానికి వెళ్లవచ్చు. ఒక పంక్తిని ఎంచుకుని అక్కడి నుంచి వినవచ్చు.",
+    ],
+    samagri: [],
+  },
   {
     slug: "varalakshmi",
     nameEn: "Sri Varalakshmi Vratam",
