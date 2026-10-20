@@ -3,6 +3,7 @@ import { ArrowLeft, CalendarClock, BookOpen, ShoppingBag, Play, ExternalLink, Ch
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useLanguage } from "@/hooks/use-language";
+import { PrayerViewCount } from "@/components/prayer-view-count";
 import type { Vratham } from "@/lib/vrathams";
 
 interface VrathamDetailProps {
@@ -43,6 +44,7 @@ export function VrathamDetail({ vratham: v, onBack }: VrathamDetailProps) {
             <h1 className="cel-headline text-3xl md:text-4xl mt-1.5">{name}</h1>
           </div>
         </div>
+        <PrayerViewCount key={v.slug} slug={v.slug} />
       </section>
 
       <div className={`grid grid-cols-1 gap-6 ${v.samagri.length ? "lg:grid-cols-3" : ""}`}>
