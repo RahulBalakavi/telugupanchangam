@@ -131,6 +131,8 @@ export interface PanchangData {
   sunset: string;
   timezone: string;
   moonPhase: number;
+  /** Sankashti Chaturthi: Krishna Chaturthi prevailing at moonrise. */
+  isSankashti?: boolean;
   isSpecialDay: boolean;
   specialDayInfo?: string;
   specialDayInfoTelugu?: string;

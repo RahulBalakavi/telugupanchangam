@@ -75,13 +75,12 @@ export async function sendNotificationToDevice(
   return sentCount;
 }
 
-function getTithiNumber(tithiName: string): number {
-  const tithis = [
-    "Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami",
-    "Shashthi", "Saptami", "Ashtami", "Navami", "Dashami",
-    "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi", "Purnima", "Amavasya"
-  ];
-  return tithis.indexOf(tithiName) + 1;
+// panchang.tithiNumber counts 0-29 from Shukla Pratipada. shouldNotify takes
+// the 1-16 position within a paksha (15 = Purnima, 16 = Amavasya).
+function tithiInPaksha(tithiNumber: number): number {
+  if (tithiNumber < 15) return tithiNumber + 1;
+  if (tithiNumber === 29) return 16;
+  return tithiNumber - 14;
 }
 
 function shouldNotify(
@@ -172,12 +171,18 @@ export async function checkAndSendNotifications(): Promise<void> {
       const today = new Date(Date.UTC(userDateTime.year, userDateTime.month - 1, userDateTime.day, 12, 0, 0));
       const panchang = getPanchangForDate(today, timezone);
       
-      const tithiNumber = panchang.tithiNumber;
+      // Sankashti follows Chaturthi at moonrise, so it can fall on a day whose
+      // sunrise tithi is Tritiya, and a sunrise Krishna Chaturthi can be the day after it.
+      let tithiNumber = tithiInPaksha(panchang.tithiNumber);
+      if (panchang.isSankashti) tithiNumber = 4;
+      else if (tithiNumber === 4 && panchang.paksha === "Krishna") tithiNumber = 0;
       const { shouldSend, tithiName, tithiTelugu } = shouldNotify(tithiNumber, prefs);
       
       if (shouldSend) {
         const payload: PushPayload = {
-          title: `${tithiTelugu} (${tithiName})`,
+          title: panchang.isSankashti
+            ? "సంకష్టహర చతుర్థి (Sankashti Chaturthi)"
+            : `${tithiTelugu} (${tithiName})`,
           body: `Today is ${tithiName}. ${panchang.specialDayInfo || "A special day for prayers and observances."}`,
           icon: "/icons/icon-192.png",
           badge: "/icons/icon-72.png",

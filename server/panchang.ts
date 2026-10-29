@@ -613,9 +613,61 @@ export function getDayPeriods(date: Date, timezone: string = "Asia/Kolkata"): Da
   };
 }
 
-export function getSpecialDayInfo(tithi: { name: string; number: number; paksha: string }): { isSpecial: boolean; info?: string; infoTelugu?: string } {
+// Krishna paksha Chaturthi in the 0-29 tithi numbering.
+const KRISHNA_CHATURTHI = 18;
+
+// The first moonrise after local noon of the calendar date, i.e. that date's
+// evening moonrise. Krishna Chaturthi's moon rises a few hours after sunset.
+function getEveningMoonrise(date: Date, timezone: string): Date | null {
+  const { lat, lon, offset } = getTimezoneCoordinates(timezone);
+  const [y, m, d] = formatDateInTimezone(date, timezone).split("-").map(Number);
+  const localNoon = new Date(Date.UTC(y, m - 1, d, 12) - offset * 3600 * 1000);
+  const observer = new Astronomy.Observer(lat, lon, 0);
+  const rise = Astronomy.SearchRiseSet(Astronomy.Body.Moon, observer, +1, localNoon, 1);
+  return rise ? rise.date : null;
+}
+
+export interface SankashtiInfo {
+  moonrise: string;
+  isAngaraki: boolean;
+}
+
+// Sankashti Chaturthi is kept on the day Krishna Chaturthi prevails at
+// moonrise (the fast is broken on seeing the moon), not at sunrise. When it
+// prevails at two moonrises, the first (Tritiya-joined) day keeps it; when the
+// tithi is so short that no moonrise falls in it, the day whose moonrise first
+// passes it (Tritiya the evening before, Panchami this evening) keeps it.
+export function getSankashti(date: Date, timezone: string = "Asia/Kolkata"): SankashtiInfo | null {
+  const moonrise = getEveningMoonrise(date, timezone);
+  if (!moonrise) return null;
+  const tithiAtRise = getTithiNumber(moonrise);
+  if (tithiAtRise !== KRISHNA_CHATURTHI && tithiAtRise !== KRISHNA_CHATURTHI + 1) return null;
+  const prevRise = getEveningMoonrise(new Date(date.getTime() - 86400 * 1000), timezone);
+  const tithiAtPrevRise = prevRise ? getTithiNumber(prevRise) : -1;
+  const isSankashti =
+    tithiAtRise === KRISHNA_CHATURTHI
+      ? tithiAtPrevRise !== KRISHNA_CHATURTHI
+      : tithiAtPrevRise === KRISHNA_CHATURTHI - 1;
+  if (!isSankashti) return null;
+  const weekday = new Date(formatDateInTimezone(date, timezone) + "T12:00:00Z").getUTCDay();
+  return { moonrise: formatTime(moonrise, timezone), isAngaraki: weekday === 2 };
+}
+
+export function getSpecialDayInfo(
+  tithi: { name: string; number: number; paksha: string },
+  sankashti: SankashtiInfo | null = null,
+): { isSpecial: boolean; info?: string; infoTelugu?: string } {
   const tithiName = tithi.name.toLowerCase();
   const paksha = tithi.paksha.toLowerCase();
+
+  if (sankashti) {
+    const angaraki = sankashti.isAngaraki;
+    return {
+      isSpecial: true,
+      info: `${angaraki ? "Angaraki " : ""}Sankashti Chaturthi - Ganesha vratam, fast ends at moonrise (${sankashti.moonrise})`,
+      infoTelugu: `${angaraki ? "అంగారక " : ""}సంకష్టహర చతుర్థి - గణపతి వ్రతం, చంద్రోదయం (${sankashti.moonrise})`,
+    };
+  }
   
   if (tithiName === "ekadashi") {
     return {
@@ -625,11 +677,13 @@ export function getSpecialDayInfo(tithi: { name: string; number: number; paksha:
     };
   }
   
-  if (tithiName === "chaturthi") {
+  // Krishna Chaturthi's Ganesha observance is Sankashti, which goes by
+  // moonrise and was tagged above.
+  if (tithiName === "chaturthi" && paksha === "shukla") {
     return {
       isSpecial: true,
-      info: `${tithi.paksha} Chaturthi - Sacred to Lord Ganesha`,
-      infoTelugu: `${paksha === "shukla" ? "శుక్ల" : "కృష్ణ"} చవితి - గణపతి పూజ`,
+      info: "Shukla Chaturthi - Sacred to Lord Ganesha",
+      infoTelugu: "శుక్ల చవితి - గణపతి పూజ",
     };
   }
   
@@ -674,7 +728,12 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
   const teluguYear = getTeluguYear(date);
   const samvatsara = getSamvatsara(date);
   const moonPhase = getMoonPhase(sunriseDate);
-  const specialDay = getSpecialDayInfo(tithi);
+  // Only the days around Krishna Chaturthi need the moonrise search.
+  const sankashti =
+    tithi.number >= KRISHNA_CHATURTHI - 2 && tithi.number <= KRISHNA_CHATURTHI + 1
+      ? getSankashti(date, timezone)
+      : null;
+  const specialDay = getSpecialDayInfo(tithi, sankashti);
   const tithiTimings = getTithiTimings(sunriseDate, timezone);
   const nakshatraTimings = getNakshatraTimings(sunriseDate, timezone);
   
@@ -711,6 +770,7 @@ export function getPanchangForDate(date: Date, timezone: string = "Asia/Kolkata"
     sunset: getSunset(date, lat, lon, offset),
     timezone,
     moonPhase,
+    isSankashti: sankashti !== null,
     isSpecialDay: specialDay.isSpecial,
     specialDayInfo: specialDay.info,
     specialDayInfoTelugu: specialDay.infoTelugu,

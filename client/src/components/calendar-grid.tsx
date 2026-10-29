@@ -176,7 +176,7 @@ export function CalendarGrid({
                           variant="secondary"
                           className="text-[8px] md:text-[9px] px-1 py-0 h-auto"
                         >
-                          {day.panchang.specialDayInfo?.split(' ')[0]}
+                          {day.panchang.isSankashti ? "Sankashti" : day.panchang.specialDayInfo?.split(' ')[0]}
                         </Badge>
                       )}
                     </div>
