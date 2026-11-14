@@ -105,11 +105,28 @@ export class DatabaseStorage implements IStorage {
         },
       })
       .returning();
+    this.prefsCache?.set(result.deviceId, result);
     return result;
   }
 
+  // The notification scheduler ticks every 5 minutes. Neon only suspends
+  // compute after 5 idle minutes, so querying on every tick kept the database
+  // awake 24/7 and burned the monthly compute allowance by mid-month. Serve
+  // the scheduler from memory instead: load once, keep it current on writes
+  // (single Render instance, and saveNotificationPreferences is the only
+  // writer), and do a slow safety reload so any out-of-band edit is picked up.
+  private prefsCache: Map<string, NotificationPreferenceDB> | null = null;
+  private prefsCacheLoadedAt = 0;
+  private static readonly PREFS_RELOAD_MS = 6 * 60 * 60 * 1000;
+
   async getAllNotificationPreferences(): Promise<NotificationPreferenceDB[]> {
-    return db.select().from(notificationPreferences);
+    const stale = Date.now() - this.prefsCacheLoadedAt > DatabaseStorage.PREFS_RELOAD_MS;
+    if (!this.prefsCache || stale) {
+      const rows = await db.select().from(notificationPreferences);
+      this.prefsCache = new Map(rows.map((r) => [r.deviceId, r]));
+      this.prefsCacheLoadedAt = Date.now();
+    }
+    return Array.from(this.prefsCache.values());
   }
 
   async recordVisit(deviceId: string, info: VisitInfo): Promise<void> {
