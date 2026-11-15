@@ -58,10 +58,15 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
+    // Render's health checker hits the health path every few seconds; logging
+    // it buried every real request. Failures are still logged.
+    const isHealthCheck =
+      req.get("user-agent")?.startsWith("Render") && res.statusCode < 400;
+    if (path.startsWith("/api") && !isHealthCheck) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+        const body = JSON.stringify(capturedJsonResponse);
+        logLine += ` :: ${body.length > 200 ? `${body.slice(0, 200)}…` : body}`;
       }
 
       log(logLine);
