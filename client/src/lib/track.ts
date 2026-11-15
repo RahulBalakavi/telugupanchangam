@@ -22,12 +22,15 @@ export function trackPageview(path: string): void {
   if (path === lastPath) return;
   lastPath = path;
 
-  let language: string | undefined;
+  // Nothing stored means the visitor is on the app's default (english, see
+  // use-language.ts). The provider only persists the default in an effect that
+  // runs after this beacon on a first visit, so unset must not mean unknown.
+  let language = "english";
   try {
     const stored = localStorage.getItem("panchangam-language");
-    if (stored === "telugu" || stored === "english") language = stored;
+    if (stored === "telugu") language = stored;
   } catch {
-    // storage blocked — fine, language just goes unreported
+    // storage blocked — the app falls back to the default too
   }
 
   const payload = JSON.stringify({
