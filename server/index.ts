@@ -60,8 +60,13 @@ app.use((req, res, next) => {
     const duration = Date.now() - start;
     // Render's health checker hits the health path every few seconds; logging
     // it buried every real request. Failures are still logged.
+    // Match the exact health path (render.yaml healthCheckPath) so a spoofed
+    // User-Agent can't hide requests to any other endpoint.
     const isHealthCheck =
-      req.get("user-agent")?.startsWith("Render") && res.statusCode < 400;
+      req.method === "GET" &&
+      path === "/api/panchang/today" &&
+      req.get("user-agent")?.startsWith("Render") &&
+      res.statusCode < 400;
     if (path.startsWith("/api") && !isHealthCheck) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
       if (capturedJsonResponse) {
